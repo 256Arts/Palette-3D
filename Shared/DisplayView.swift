@@ -1,6 +1,6 @@
 //
 //  DisplayView.swift
-//  Palette3D
+//  Palette 3D
 //
 //  Created by 256 Arts Developer on 2024-09-05.
 //
@@ -31,6 +31,7 @@ struct DisplayView: View {
     @State var sphereNeedsRefresh = true
     @State var canShowTextInputWarning = true
     @State var showingTextInputWarning = false
+    @State var showingHelp = false
     @FocusState var textIsFocused: Bool
     
     var body: some View {
@@ -95,6 +96,13 @@ struct DisplayView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    showingHelp = true
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                }
+            }
             ToolbarItem(placement: .principal) {
                 Picker("Display Mode", selection: $displayMode) {
                     Image(systemName: "rotate.3d")
@@ -111,6 +119,11 @@ struct DisplayView: View {
             
             ToolbarItem(placement: .primaryAction) {
                 Text("\(paletteColors.count) Colors")
+            }
+        }
+        .sheet(isPresented: $showingHelp) {
+            NavigationStack {
+                HelpView()
             }
         }
         .onChange(of: paletteColors) {

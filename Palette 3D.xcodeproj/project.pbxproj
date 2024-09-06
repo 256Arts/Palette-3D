@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1B4230FB2C89558A001FD549 /* ChromaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1B4230FA2C89558A001FD549 /* ChromaKit */; };
 		1B42310A2C89F315001FD549 /* DisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4231092C89F30C001FD549 /* DisplayView.swift */; };
+		1B42310E2C8BAE3B001FD549 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B42310D2C8BAE38001FD549 /* HelpView.swift */; };
 		351A163028AA86900047AA76 /* Palette3DApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351A162028AA868F0047AA76 /* Palette3DApp.swift */; };
 		351A163228AA86900047AA76 /* ParametersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351A162128AA868F0047AA76 /* ParametersView.swift */; };
 		351A163428AA86900047AA76 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 351A162228AA86900047AA76 /* Assets.xcassets */; };
@@ -29,6 +30,8 @@
 /* Begin PBXFileReference section */
 		1B4231002C896DAD001FD549 /* Palette 3DTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Palette 3DTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B4231092C89F30C001FD549 /* DisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayView.swift; sourceTree = "<group>"; };
+		1B42310D2C8BAE38001FD549 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		1B42310F2C8BAFE9001FD549 /* Palette-3D-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Palette-3D-Info.plist"; sourceTree = "<group>"; };
 		351A162028AA868F0047AA76 /* Palette3DApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette3DApp.swift; sourceTree = "<group>"; };
 		351A162128AA868F0047AA76 /* ParametersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParametersView.swift; sourceTree = "<group>"; };
 		351A162228AA86900047AA76 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -68,6 +71,7 @@
 		351A161A28AA868F0047AA76 = {
 			isa = PBXGroup;
 			children = (
+				1B42310F2C8BAFE9001FD549 /* Palette-3D-Info.plist */,
 				351A161F28AA868F0047AA76 /* Shared */,
 				351A162E28AA86900047AA76 /* macOS */,
 				1B4231012C896DAD001FD549 /* PaletteTests */,
@@ -80,6 +84,7 @@
 			children = (
 				351A162028AA868F0047AA76 /* Palette3DApp.swift */,
 				1B4231092C89F30C001FD549 /* DisplayView.swift */,
+				1B42310D2C8BAE38001FD549 /* HelpView.swift */,
 				351A162128AA868F0047AA76 /* ParametersView.swift */,
 				351A163E28AA86D60047AA76 /* PaletteColor.swift */,
 				351A164828AB2A890047AA76 /* PaletteGenerator.swift */,
@@ -220,6 +225,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				351A163228AA86900047AA76 /* ParametersView.swift in Sources */,
+				1B42310E2C8BAE3B001FD549 /* HelpView.swift in Sources */,
 				351A164928AB2A890047AA76 /* PaletteGenerator.swift in Sources */,
 				351A163028AA86900047AA76 /* Palette3DApp.swift in Sources */,
 				1B42310A2C89F315001FD549 /* DisplayView.swift in Sources */,
@@ -422,10 +428,10 @@
 				DEVELOPMENT_TEAM = VA3SY54YU8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Palette-3D-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -459,10 +465,10 @@
 				DEVELOPMENT_TEAM = VA3SY54YU8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Palette-3D-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;

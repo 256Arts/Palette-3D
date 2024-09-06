@@ -1,6 +1,6 @@
 //
 //  ParametersView.swift
-//  Palette3D
+//  Palette 3D
 //
 //  Created by 256 Arts Developer on 2022-08-15.
 //
