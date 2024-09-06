@@ -1,0 +1,15 @@
+{
+  "originHash" : "828fdd0269fec734ba5fc49021412023ff8fe9bc58a41f329893f501fddd54f6",
+  "pins" : [
+    {
+      "identity" : "chromakit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/HarshilShah/ChromaKit",
+      "state" : {
+        "revision" : "56f53ba8b53b330515eaaaa6d87b20167109a1cf",
+        "version" : "0.1.0"
+      }
+    }
+  ],
+  "version" : 3
+}
