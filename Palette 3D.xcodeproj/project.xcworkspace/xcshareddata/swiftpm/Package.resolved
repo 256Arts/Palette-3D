@@ -1,13 +1,13 @@
 {
-  "originHash" : "828fdd0269fec734ba5fc49021412023ff8fe9bc58a41f329893f501fddd54f6",
+  "originHash" : "c9898dbf0069b8da7f980f6b0fbc93f624c150839b94b48fb18dd65d3d0eb106",
   "pins" : [
     {
       "identity" : "chromakit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/HarshilShah/ChromaKit",
+      "location" : "https://github.com/256Arts/ChromaKit.git",
       "state" : {
-        "revision" : "56f53ba8b53b330515eaaaa6d87b20167109a1cf",
-        "version" : "0.1.0"
+        "revision" : "6edb5e7f6b5466931ca96c124f3b340cddfc7c7a",
+        "version" : "1.0.1"
       }
     }
   ],

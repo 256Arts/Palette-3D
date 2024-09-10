@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct HelpView: View {
+    
+    @Environment(\.dismiss) var dismiss
+    
     var body: some View {
         Form {
             Section {
@@ -25,7 +28,7 @@ struct HelpView: View {
         .navigationTitle("Help")
         #if os(macOS)
         .scenePadding()
-        #else
+        #endif
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") {
@@ -34,6 +37,5 @@ struct HelpView: View {
             }
             
         }
-        #endif
     }
 }

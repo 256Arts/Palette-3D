@@ -8,10 +8,19 @@
 import ChromaKit
 import SwiftUI
 
-enum ColorSpace: String, CaseIterable, Identifiable {
+enum ColorSpace: CaseIterable, Identifiable {
     case lab, lch, okLab, okLch
 
     var id: Self { self }
+    
+    var name: String {
+        switch self {
+        case .lab: "Lab"
+        case .lch: "Lch"
+        case .okLab: "Oklab (Perceptual)"
+        case .okLch: "Oklch (Perceptual)"
+        }
+    }
 }
 
 struct PaletteColor: Equatable, Identifiable {
@@ -79,30 +88,55 @@ struct PaletteColor: Equatable, Identifiable {
         }
     }
 
-    func color(colorSpace: ColorSpace) -> Color {
+    private func absoluteColor(colorSpace: ColorSpace) -> XYZConvertable {
         switch colorSpace {
         case .lch:
-            Color.lch(lightnessFraction * 100, chromaFraction * 150, hueAngle.degrees)
+            Lch(l: lightnessFraction * 100, c: chromaFraction * 150, h: hueAngle.degrees)
         case .lab:
-            Color.lab(lightnessFraction * 100, normalizedA * 125, normalizedB * 125)
+            Lab(l: lightnessFraction * 100, a: normalizedA * 125, b: normalizedB * 125)
         case .okLch:
-            Color.oklch(lightnessFraction, chromaFraction * 0.4, hueAngle.degrees)
+            Oklch(l: lightnessFraction, c: chromaFraction * 0.4, h: hueAngle.degrees)
         case .okLab:
-            Color.oklab(lightnessFraction, normalizedA * 0.4, normalizedB * 0.4)
+            Oklab(l: lightnessFraction, a: normalizedA * 0.4, b: normalizedB * 0.4)
         }
     }
     
-    func cssString(colorSpace: ColorSpace) -> String {
-        switch colorSpace {
-        case .lch:
-            "lch(\(lightnessFraction * 100) \(chromaFraction * 150) \(hueAngle.degrees))"
-        case .lab:
-            "lab(\(lightnessFraction * 100) \(normalizedA * 125) \(normalizedB * 125))"
-        case .okLch:
-            "oklch(\(lightnessFraction) \(chromaFraction * 0.4) \(hueAngle.degrees))"
-        case .okLab:
-            "oklab(\(lightnessFraction) \(normalizedA * 0.4) \(normalizedB * 0.4))"
+    func color(colorSpace: ColorSpace) -> Color {
+        Color(absoluteColor(colorSpace: colorSpace))
+    }
+    
+    func cssString(colorSpace: ColorSpace, convertedToP3: Bool) -> String {
+        
+        func round(_ number: Double) -> String {
+            Self.cssDecimalFormatter.string(from: NSNumber(value: number))!
+        }
+        
+        let absoluteColor = absoluteColor(colorSpace: colorSpace)
+        
+        if convertedToP3 {
+            let p3 = absoluteColor.p3
+            return "color(display-p3 \(round(p3.r)) \(round(p3.g)) \(round(p3.b)))"
+        } else {
+            return switch absoluteColor {
+            case let lch as Lch:
+                "lch(\(round(lch.l)) \(round(lch.c)) \(round(lch.h)))"
+            case let lab as Lab:
+                "lab(\(round(lab.l)) \(round(lab.a)) \(round(lab.b)))"
+            case let oklch as Oklch:
+                "oklch(\(round(oklch.l)) \(round(oklch.c)) \(round(oklch.h)))"
+            case let oklab as Oklab:
+                "oklab(\(round(oklab.l)) \(round(oklab.a)) \(round(oklab.b)))"
+            default:
+                ""
+            }
         }
     }
+    
+    static let cssDecimalFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 5
+        return formatter
+    }()
 
 }

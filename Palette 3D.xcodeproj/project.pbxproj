@@ -10,6 +10,7 @@
 		1B4230FB2C89558A001FD549 /* ChromaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1B4230FA2C89558A001FD549 /* ChromaKit */; };
 		1B42310A2C89F315001FD549 /* DisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4231092C89F30C001FD549 /* DisplayView.swift */; };
 		1B42310E2C8BAE3B001FD549 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B42310D2C8BAE38001FD549 /* HelpView.swift */; };
+		1B583F242C8FF4CA0081385A /* ChromaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1B583F232C8FF4CA0081385A /* ChromaKit */; };
 		351A163028AA86900047AA76 /* Palette3DApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351A162028AA868F0047AA76 /* Palette3DApp.swift */; };
 		351A163228AA86900047AA76 /* ParametersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 351A162128AA868F0047AA76 /* ParametersView.swift */; };
 		351A163428AA86900047AA76 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 351A162228AA86900047AA76 /* Assets.xcassets */; };
@@ -62,6 +63,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1B4230FB2C89558A001FD549 /* ChromaKit in Frameworks */,
+				1B583F242C8FF4CA0081385A /* ChromaKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -181,7 +183,7 @@
 			);
 			mainGroup = 351A161A28AA868F0047AA76;
 			packageReferences = (
-				1B4230F92C89558A001FD549 /* XCRemoteSwiftPackageReference "ChromaKit" */,
+				1B583F222C8FF4CA0081385A /* XCRemoteSwiftPackageReference "ChromaKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 351A162828AA86900047AA76 /* Products */;
@@ -361,6 +363,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -415,6 +418,7 @@
 				MTL_FAST_MATH = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
@@ -534,12 +538,25 @@
 				minimumVersion = 0.1.0;
 			};
 		};
+		1B583F222C8FF4CA0081385A /* XCRemoteSwiftPackageReference "ChromaKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/256Arts/ChromaKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		1B4230FA2C89558A001FD549 /* ChromaKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1B4230F92C89558A001FD549 /* XCRemoteSwiftPackageReference "ChromaKit" */;
+			productName = ChromaKit;
+		};
+		1B583F232C8FF4CA0081385A /* ChromaKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1B583F222C8FF4CA0081385A /* XCRemoteSwiftPackageReference "ChromaKit" */;
 			productName = ChromaKit;
 		};
 /* End XCSwiftPackageProductDependency section */

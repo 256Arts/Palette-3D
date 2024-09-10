@@ -12,6 +12,7 @@ struct ParametersView: View {
 
     @ObservedObject var generator: PaletteGenerator
 
+    @Binding var convertCSSToP3: Bool
     @Binding var paletteColors: [PaletteColor]
     @Binding var paletteText: String
 
@@ -19,7 +20,7 @@ struct ParametersView: View {
         Form {
             Picker("Color Space", selection: $generator.colorSpace) {
                 ForEach(ColorSpace.allCases) { space in
-                    Text(space.rawValue)
+                    Text(space.name)
                         .tag(space)
                 }
             }
@@ -103,12 +104,12 @@ struct ParametersView: View {
     
     func regenerate() {
         paletteColors = generator.generate()
-        paletteText = paletteColors.map({ $0.cssString(colorSpace: generator.colorSpace) }).joined(separator: "\n") + "\n\n" // To fix layout when inspector is collapsed
+        paletteText = paletteColors.map({ $0.cssString(colorSpace: generator.colorSpace, convertedToP3: convertCSSToP3) }).joined(separator: "\n") + "\n\n" // To fix layout when inspector is collapsed
     }
 }
 
 #Preview {
     NavigationStack {
-        ParametersView(generator: PaletteGenerator(), paletteColors: .constant([]), paletteText: .constant(""))
+        ParametersView(generator: PaletteGenerator(), convertCSSToP3: .constant(false), paletteColors: .constant([]), paletteText: .constant(""))
     }
 }

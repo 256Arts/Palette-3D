@@ -13,6 +13,7 @@ struct Palette3DApp: App {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     @StateObject var generator = PaletteGenerator()
+    @State var convertCSSToP3 = false
     @State var paletteColors: [PaletteColor] = []
     @State var paletteText = ""
     @State var showingInspector = true
@@ -27,7 +28,7 @@ struct Palette3DApp: App {
     var body: some Scene {
         WindowGroup {
             NavigationStack {
-                DisplayView(generator: generator, paletteColors: $paletteColors, paletteText: $paletteText)
+                DisplayView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
                     .safeAreaPadding(.bottom, selectedDetent == .height(64) || horizontalSizeClass == .regular || !isPhone ? 0 : 400)
                     .toolbar {
                         if !showingInspector {
@@ -40,7 +41,7 @@ struct Palette3DApp: App {
                     }
             }
             .inspector(isPresented: $showingInspector) {
-                ParametersView(generator: generator, paletteColors: $paletteColors, paletteText: $paletteText)
+                ParametersView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
                     .presentationDetents([.height(64), .medium, .large], selection: $selectedDetent)
                     .presentationBackgroundInteraction(.enabled)
                     .interactiveDismissDisabled(isPhone)

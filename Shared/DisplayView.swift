@@ -24,6 +24,7 @@ struct DisplayView: View {
     
     @ObservedObject var generator: PaletteGenerator
     
+    @Binding var convertCSSToP3: Bool
     @Binding var paletteColors: [PaletteColor]
     @Binding var paletteText: String
     
@@ -67,7 +68,9 @@ struct DisplayView: View {
                     }
                 }
                 .realityViewCameraControls(.orbit)
+                #if os(iOS)
                 .aspectRatio(1, contentMode: .fit)
+                #endif
             case .text:
                 TextEditor(text: $paletteText)
                     .autocorrectionDisabled()
@@ -103,6 +106,7 @@ struct DisplayView: View {
                     Image(systemName: "questionmark.circle")
                 }
             }
+            
             ToolbarItem(placement: .principal) {
                 Picker("Display Mode", selection: $displayMode) {
                     Image(systemName: "rotate.3d")
@@ -117,8 +121,15 @@ struct DisplayView: View {
                 .frame(maxWidth: 140)
             }
             
+            if displayMode == .text {
+                ToolbarItem(placement: .primaryAction) {
+                    Toggle("P3", isOn: $convertCSSToP3)
+                }
+            }
+            
             ToolbarItem(placement: .primaryAction) {
                 Text("\(paletteColors.count) Colors")
+                    .foregroundStyle(.secondary)
             }
         }
         .sheet(isPresented: $showingHelp) {
@@ -129,10 +140,13 @@ struct DisplayView: View {
         .onChange(of: paletteColors) {
             sphereNeedsRefresh = true
         }
+        .onChange(of: convertCSSToP3) { _, newValue in
+            paletteText = paletteColors.map({ $0.cssString(colorSpace: generator.colorSpace, convertedToP3: newValue) }).joined(separator: "\n") + "\n\n" // To fix layout when inspector is collapsed
+        }
         .alert("Text Input Not Supported", isPresented: $showingTextInputWarning) {
             Button("OK") { }
         } message: {
-            Text("Only Lch and Oklch support text input. Lab and Oklab are output only.")
+            Text("Only Lch and Oklch support text input. Lab, Oklab, and P3 are output only.")
         }
 
     }
@@ -140,6 +154,6 @@ struct DisplayView: View {
 
 #Preview {
     NavigationStack {
-        DisplayView(generator: PaletteGenerator(), paletteColors: .constant([]), paletteText: .constant(""))
+        DisplayView(generator: PaletteGenerator(), convertCSSToP3: .constant(false), paletteColors: .constant([]), paletteText: .constant(""))
     }
 }
