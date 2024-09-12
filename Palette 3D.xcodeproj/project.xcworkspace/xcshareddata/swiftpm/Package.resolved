@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/256Arts/ChromaKit.git",
       "state" : {
-        "revision" : "6edb5e7f6b5466931ca96c124f3b340cddfc7c7a",
-        "version" : "1.0.1"
+        "revision" : "3a767a0ded1081cc90c87c66907571c1c8d1fefe",
+        "version" : "1.0.0"
       }
     }
   ],

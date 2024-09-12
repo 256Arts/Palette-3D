@@ -11,6 +11,7 @@ import SwiftUI
 struct Palette3DApp: App {
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.openWindow) private var openWindow
     
     @StateObject var generator = PaletteGenerator()
     @State var convertCSSToP3 = false
@@ -26,6 +27,25 @@ struct Palette3DApp: App {
     #endif
     
     var body: some Scene {
+        #if os(visionOS)
+        WindowGroup {
+            NavigationStack {
+                ParametersView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
+                    .toolbar {
+                        Button("Open Display") {
+                            openWindow(id: "display")
+                        }
+                    }
+            }
+        }
+        .defaultSize(width: 500, height: 750)
+        
+        WindowGroup("Display", id: "display") {
+            DisplayView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
+        }
+        .windowStyle(.volumetric)
+        .defaultSize(width: 1, height: 1, depth: 1, in: .meters)
+        #else
         WindowGroup {
             NavigationStack {
                 DisplayView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
@@ -47,5 +67,6 @@ struct Palette3DApp: App {
                     .interactiveDismissDisabled(isPhone)
             }
         }
+        #endif
     }
 }

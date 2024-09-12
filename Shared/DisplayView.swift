@@ -59,15 +59,17 @@ struct DisplayView: View {
                     
                     for pColor in paletteColors {
                         let model = ModelEntity(
-                            mesh: .generateSphere(radius: 0.1),
+                            mesh: .generateSphere(radius: Float(0.1 * Self.scale)),
                             materials: [SimpleMaterial(color: SystemColor(pColor.color(colorSpace: generator.colorSpace)), isMetallic: false)])
-                        model.position.x = pColor.visualizedX
-                        model.position.y = pColor.visualizedY
-                        model.position.z = pColor.visualizedZ
+                        model.position.x = Float((pColor.visualizedX * Self.scale) / generator.chromaMultiplier)
+                        model.position.y = Float(pColor.visualizedY * Self.scale)
+                        model.position.z = Float((pColor.visualizedZ * Self.scale) / generator.chromaMultiplier)
                         content.add(model)
                     }
                 }
+                #if !os(visionOS)
                 .realityViewCameraControls(.orbit)
+                #endif
                 #if os(iOS)
                 .aspectRatio(1, contentMode: .fit)
                 #endif
@@ -148,8 +150,17 @@ struct DisplayView: View {
         } message: {
             Text("Only Lch and Oklch support text input. Lab, Oklab, and P3 are output only.")
         }
-
     }
+    
+    nonisolated static var scale: Double {
+        // Make scales slightly smaller to prevent balls on the edge from clipping
+        #if os(visionOS)
+        0.46
+        #else
+        0.98
+        #endif
+    }
+    
 }
 
 #Preview {

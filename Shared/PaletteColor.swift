@@ -41,14 +41,14 @@ struct PaletteColor: Equatable, Identifiable {
     var visualizedLightnessLayerRadius: Double {
         sqrt(1 - pow(lightnessFraction * 2 - 1, 2))
     }
-    var visualizedX: Float {
-        Float(normalizedA * visualizedLightnessLayerRadius)
+    var visualizedX: Double {
+        normalizedA * visualizedLightnessLayerRadius
     }
-    var visualizedY: Float {
-        Float(lightnessFraction * 2 - 1)
+    var visualizedY: Double {
+        (lightnessFraction * 2) - 1
     }
-    var visualizedZ: Float {
-        Float(normalizedB * visualizedLightnessLayerRadius)
+    var visualizedZ: Double {
+        normalizedB * visualizedLightnessLayerRadius
     }
     
     init(lightnessFraction: Double, chromaFraction: Double, hueAngle: Angle) {
@@ -80,10 +80,10 @@ struct PaletteColor: Equatable, Identifiable {
 //            let normalizedB = numbers[2] / 125
             self.init(lightnessFraction: numbers[0] / 100, chromaFraction: 0, hueAngle: .zero)
         case .okLch:
-            self.init(lightnessFraction: numbers[0], chromaFraction: numbers[1] / 0.4, hueAngle: .degrees(numbers[2]))
+            self.init(lightnessFraction: numbers[0], chromaFraction: numbers[1] / Self.maxChromaP3, hueAngle: .degrees(numbers[2]))
         case .okLab:
-//            let normalizedA = numbers[1] / 0.4
-//            let normalizedB = numbers[2] / 0.4
+//            let normalizedA = numbers[1] / Self.maxChromaP3
+//            let normalizedB = numbers[2] / Self.maxChromaP3
             self.init(lightnessFraction: numbers[0], chromaFraction: 0, hueAngle: .zero)
         }
     }
@@ -95,9 +95,9 @@ struct PaletteColor: Equatable, Identifiable {
         case .lab:
             Lab(l: lightnessFraction * 100, a: normalizedA * 125, b: normalizedB * 125)
         case .okLch:
-            Oklch(l: lightnessFraction, c: chromaFraction * 0.4, h: hueAngle.degrees)
+            Oklch(l: lightnessFraction, c: chromaFraction * Self.maxChromaP3, h: hueAngle.degrees)
         case .okLab:
-            Oklab(l: lightnessFraction, a: normalizedA * 0.4, b: normalizedB * 0.4)
+            Oklab(l: lightnessFraction, a: normalizedA * Self.maxChromaP3, b: normalizedB * Self.maxChromaP3)
         }
     }
     
@@ -131,6 +131,8 @@ struct PaletteColor: Equatable, Identifiable {
             }
         }
     }
+    
+    static let maxChromaP3 = 0.4
     
     static let cssDecimalFormatter: NumberFormatter = {
         let formatter = NumberFormatter()

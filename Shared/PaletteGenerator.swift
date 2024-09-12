@@ -5,7 +5,7 @@
 //  Created by 256 Arts Developer on 2022-08-15.
 //
 
-import Foundation
+import SwiftUI
 
 final class PaletteGenerator: ObservableObject {
 
@@ -24,6 +24,9 @@ final class PaletteGenerator: ObservableObject {
     /// Whether the 1st chroma level is just a single grayscale color
     @Published var chromaStartsAtZero = true
     
+    /// Chroma multiplier (0.5 = all colors have half the chroma)
+    @Published var chromaMultiplier = 1.0
+    
     /// Number of different hues at the largest chroma level
     @Published var maxHueSegments: Int = 12
     
@@ -34,7 +37,7 @@ final class PaletteGenerator: ObservableObject {
     @Published var chromaTwist = false
     
     /// Rotate the entire palette to pick different hues
-    @Published var startingHueOffset: Double = 0.0
+    @Published var startingHueOffset: Angle = .zero
 
     func generate() -> [PaletteColor] {
         var colors: [PaletteColor] = []
@@ -59,12 +62,12 @@ final class PaletteGenerator: ObservableObject {
                         let chromaLayerRadius = chroma * lightnessLayerRadius
                         let chromaLayerCircumference = 2 * .pi * chromaLayerRadius
                         let hueSegments = Int(round(continuousHues ? Double(maxHueSegments) * chroma : chromaLayerCircumference / targetCircumferencePerHue))
-                        let hueStart = startingHueOffset + (chromaTwist ? chroma / Double(hueSegments) : 0) + (lightnessTwist ? lightness / Double(hueSegments) : 0)
-                        let hueEnd = hueStart + 1
-                        let hueStep = 1.0 / Double(hueSegments)
+                        let hueStart = startingHueOffset.degrees + (chromaTwist ? (chroma * 360) / Double(hueSegments) : 0) + (lightnessTwist ? (lightness * 360) / Double(hueSegments) : 0)
+                        let hueEnd = hueStart + 360
+                        let hueStep = 360 / Double(hueSegments)
                         
                         for hue in stride(from: hueStart, to: hueEnd, by: hueStep) {
-                            colors.append(PaletteColor(lightnessFraction: lightness, chromaFraction: chroma, hueAngle: .degrees(hue.truncatingRemainder(dividingBy: 1) * 360)))
+                            colors.append(PaletteColor(lightnessFraction: lightness, chromaFraction: chroma * chromaMultiplier, hueAngle: .degrees(hue)))
                         }
                     }
                 }
