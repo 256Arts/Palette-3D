@@ -22,8 +22,7 @@ struct DisplayView: View {
         var id: Self { self }
     }
     
-    @ObservedObject var generator: PaletteGenerator
-    
+    @Bindable var generator: PaletteGenerator
     @Binding var convertCSSToP3: Bool
     @Binding var paletteColors: [PaletteColor]
     @Binding var paletteText: String
@@ -32,8 +31,17 @@ struct DisplayView: View {
     @State var sphereNeedsRefresh = true
     @State var canShowTextInputWarning = true
     @State var showingTextInputWarning = false
-    @State var showingHelp = false
     @FocusState var textIsFocused: Bool
+    
+    @Environment(\.accessibilityAssistiveAccessEnabled) private var isAssistiveAccessEnabled
+    
+    private var colorCountPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+        .primaryAction
+        #else
+        .navigationBarLeading
+        #endif
+    }
     
     var body: some View {
         VStack {
@@ -67,20 +75,22 @@ struct DisplayView: View {
                         content.add(model)
                     }
                 }
+                .realityViewLayoutBehavior(.centered)
                 #if !os(visionOS)
                 .realityViewCameraControls(.orbit)
-                #endif
-                #if os(iOS)
-                .aspectRatio(1, contentMode: .fit)
                 #endif
             case .text:
                 TextEditor(text: $paletteText)
                     .autocorrectionDisabled()
-                    #if !os(macOS)
+                    .focused($textIsFocused)
+                    #if os(macOS)
+                    .overlay(alignment: .topTrailing) {
+                        Toggle("P3", isOn: $convertCSSToP3)
+                            .padding()
+                    }
+                    #else
                     .textInputAutocapitalization(.never)
                     #endif
-                    .focused($textIsFocused)
-                    .contentMargins(16, for: .scrollContent)
                     .onChange(of: paletteText) { _, newValue in
                         guard textIsFocused else {
                             canShowTextInputWarning = true
@@ -101,13 +111,12 @@ struct DisplayView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    showingHelp = true
-                } label: {
-                    Image(systemName: "questionmark.circle")
-                }
+            ToolbarItem(placement: colorCountPlacement) {
+                Text("\(paletteColors.count) Colors")
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
             }
+            .sharedBackgroundVisibility(.hidden)
             
             ToolbarItem(placement: .principal) {
                 Picker("Display Mode", selection: $displayMode) {
@@ -123,21 +132,39 @@ struct DisplayView: View {
                 .frame(maxWidth: 140)
             }
             
+            #if !os(macOS)
             if displayMode == .text {
+//                ToolbarItem(placement: .primaryAction) {
+//                    ShareLink(item: paletteText)
+//                }
+                
                 ToolbarItem(placement: .primaryAction) {
                     Toggle("P3", isOn: $convertCSSToP3)
                 }
             }
             
-            ToolbarItem(placement: .primaryAction) {
-                Text("\(paletteColors.count) Colors")
-                    .foregroundStyle(.secondary)
+            if !isAssistiveAccessEnabled {
+                ToolbarItemGroup(placement: .secondaryAction) {
+                    Link(destination: URL(string: "https://www.256arts.com/")!) {
+                        Label("Developer Website", systemImage: "safari")
+                    }
+                    Link(destination: URL(string: "https://www.256arts.com/joincommunity/")!) {
+                        Label("Join Community", systemImage: "bubble.left.and.bubble.right")
+                    }
+                    Link(destination: URL(string: "https://github.com/256Arts/Palette-3D")!) {
+                        Label("Contribute on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                }
             }
-        }
-        .sheet(isPresented: $showingHelp) {
-            NavigationStack {
-                HelpView()
+            
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                
+                Button("Done") {
+                    textIsFocused = false
+                }
             }
+            #endif
         }
         .onChange(of: paletteColors) {
             sphereNeedsRefresh = true

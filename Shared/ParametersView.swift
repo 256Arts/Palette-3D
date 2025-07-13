@@ -10,8 +10,7 @@ import RealityKit
 
 struct ParametersView: View {
 
-    @ObservedObject var generator: PaletteGenerator
-
+    @Bindable var generator: PaletteGenerator
     @Binding var convertCSSToP3: Bool
     @Binding var paletteColors: [PaletteColor]
     @Binding var paletteText: String

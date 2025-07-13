@@ -13,7 +13,7 @@ struct Palette3DApp: App {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.openWindow) private var openWindow
     
-    @StateObject var generator = PaletteGenerator()
+    @State var generator = PaletteGenerator()
     @State var convertCSSToP3 = false
     @State var paletteColors: [PaletteColor] = []
     @State var paletteText = ""

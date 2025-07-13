@@ -7,45 +7,47 @@
 
 import SwiftUI
 
-final class PaletteGenerator: ObservableObject {
+@Observable
+final class PaletteGenerator {
 
     /// Color space
-    @Published var colorSpace: ColorSpace = .okLch
+    var colorSpace: ColorSpace = .okLch
     
     /// Number of levels of lightness
-    @Published var lightnessLevels: Int = 5
+    var lightnessLevels: Int = 5
     
     /// Rotates each lightness layer
-    @Published var lightnessTwist = false
+    var lightnessTwist = false
     
     /// Number of levels of chroma
-    @Published var chromaLevels: Int = 3
+    var chromaLevels: Int = 3
     
     /// Whether the 1st chroma level is just a single grayscale color
-    @Published var chromaStartsAtZero = true
+    var chromaStartsAtZero = true
     
     /// Chroma multiplier (0.5 = all colors have half the chroma)
-    @Published var chromaMultiplier = 1.0
+    var chromaMultiplier = 1.0
     
     /// Number of different hues at the largest chroma level
-    @Published var maxHueSegments: Int = 12
+    var maxHueSegments: Int = 12
     
     /// Whether each hue should be represented in all lightness levels
-    @Published var continuousHues = true
+    var continuousHues = true
     
     /// Rotates each chroma ring
-    @Published var chromaTwist = false
+    var chromaTwist = false
     
     /// Rotate the entire palette to pick different hues
-    @Published var startingHueOffset: Angle = .zero
+    var startingHueOffset: Angle = .zero
 
     func generate() -> [PaletteColor] {
         var colors: [PaletteColor] = []
+        let lightnessRange = lightnessLevels == 1 ? [0.5] : Array(stride(from: 0.0, through: 1.0, by: 1.0 / Double(lightnessLevels-1)))
         let maxLightnessLayerRadius = 1.0
         let maxLightnessLayerCircumference = 2 * .pi * maxLightnessLayerRadius
         let targetCircumferencePerHue = maxLightnessLayerCircumference / Double(maxHueSegments)
         
-        for lightness in stride(from: 0.0, through: 1.0, by: 1.0 / Double(lightnessLevels-1)) {
+        for lightness in lightnessRange {
             let lightnessLayerRadius = sqrt(1 - pow(lightness * 2 - 1, 2))
             
             switch lightness {
@@ -55,7 +57,7 @@ final class PaletteGenerator: ObservableObject {
                 let chromaStep = chromaStartsAtZero ? 1 / Double(chromaLevels-1) : 1 / (Double(chromaLevels)-0.5)
                 let chromaStart = chromaStartsAtZero ? 0 : chromaStep / 2
                 
-                for chroma in stride(from: chromaStart, through: 1.0, by: chromaStep) {
+                for chroma in stride(from: 1.0, through: chromaStart, by: -chromaStep) { // Start at 1.0 to ensure single chroma level will be 1.0
                     if chroma == 0 {
                         colors.append(PaletteColor(lightnessFraction: lightness, chromaFraction: chroma, hueAngle: .zero))
                     } else {

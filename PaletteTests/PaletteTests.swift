@@ -33,8 +33,13 @@ struct PaletteTests {
     @Test func testCSS() {
         let color = PaletteColor(lightnessFraction: 0, chromaFraction: 0, hueAngle: .zero)
         
-        #expect(color.cssString(colorSpace: .lab, convertedToP3: false) == "lab(0 0 0)")
-        #expect(color.cssString(colorSpace: .lab, convertedToP3: true) == "color(display-p3 0 0 0)")
+        let labCSS = color.cssString(colorSpace: .lab, convertedToP3: false)
+        #expect(labCSS == "lab(0 0 0)")
+        #expect(PaletteColor(css: labCSS)?.chromaFraction == 0)
+        
+        let p3CSS = color.cssString(colorSpace: .lab, convertedToP3: true)
+        #expect(p3CSS == "color(display-p3 0 0 0)")
+        #expect(PaletteColor(css: p3CSS)?.chromaFraction == 0)
     }
 
 }
