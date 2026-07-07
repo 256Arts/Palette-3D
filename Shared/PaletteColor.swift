@@ -7,8 +7,13 @@
 
 import ChromaKit
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
-enum ColorSpace: CaseIterable, Identifiable {
+enum ColorSpace: String, CaseIterable, Identifiable, Codable {
     case lab, lch, okLab, okLch
 
     var id: Self { self }
@@ -21,13 +26,33 @@ enum ColorSpace: CaseIterable, Identifiable {
         case .okLch: "Oklch (Perceptual)"
         }
     }
+
+    /// The absolute lightness value at `lightnessFraction == 1`.
+    var lightnessScale: Double {
+        switch self {
+        case .lab, .lch: 100
+        case .okLab, .okLch: 1
+        }
+    }
+
+    /// The absolute chroma value at `chromaFraction == 1`.
+    var chromaScale: Double {
+        switch self {
+        case .lch: 150
+        case .lab: 125
+        case .okLab, .okLch: PaletteColor.maxChromaP3
+        }
+    }
 }
 
-struct PaletteColor: Equatable, Identifiable {
+struct PaletteColor: Equatable, Identifiable, Codable {
 
     var lightnessFraction: Double
     var chromaFraction: Double
     var hueAngle: Angle
+
+    /// An optional user-facing name. `nil` when unnamed; optional so palettes saved before naming existed still decode.
+    var name: String?
 
     var id: String {
         "\(lightnessFraction)-\(chromaFraction)-\(hueAngle)"
@@ -51,10 +76,11 @@ struct PaletteColor: Equatable, Identifiable {
         normalizedB * visualizedLightnessLayerRadius
     }
     
-    init(lightnessFraction: Double, chromaFraction: Double, hueAngle: Angle) {
+    init(lightnessFraction: Double, chromaFraction: Double, hueAngle: Angle, name: String? = nil) {
         self.lightnessFraction = lightnessFraction
         self.chromaFraction = chromaFraction
         self.hueAngle = hueAngle
+        self.name = name
     }
     
     init?(css: String) {
@@ -71,38 +97,79 @@ struct PaletteColor: Equatable, Identifiable {
         let numbers = css[css.index(after: openParenIndex) ..< closeParenIndex].components(separatedBy: .whitespaces).compactMap({ Double($0) })
         
         guard numbers.count == 3 else { return nil }
-        
+
+        // Only lch/oklch reach here; lab/oklab were rejected by the prefix guard above.
+        self.init(
+            lightnessFraction: numbers[0] / colorSpace.lightnessScale,
+            chromaFraction: numbers[1] / colorSpace.chromaScale,
+            hueAngle: .degrees(numbers[2]))
+    }
+
+    /// Creates a palette color from a displayable color (e.g. an imported `.clr` entry),
+    /// mapped into the given color space's fraction model. Returns `nil` if the color has no RGB representation.
+    init?(_ color: SystemColor, colorSpace: ColorSpace) {
+        guard let p3 = P3(color) else { return nil }
+        self.init(p3, colorSpace: colorSpace)
+    }
+
+    /// Creates a palette color from a display-P3 color, mapped into the given color space's fraction model.
+    init(_ p3: P3, colorSpace: ColorSpace) {
+        let l: Double, c: Double, h: Double
         switch colorSpace {
-        case .lch:
-            self.init(lightnessFraction: numbers[0] / 100, chromaFraction: numbers[1] / 150, hueAngle: .degrees(numbers[2]))
-        case .lab:
-//            let normalizedA = numbers[1] / 125
-//            let normalizedB = numbers[2] / 125
-            self.init(lightnessFraction: numbers[0] / 100, chromaFraction: 0, hueAngle: .zero)
-        case .okLch:
-            self.init(lightnessFraction: numbers[0], chromaFraction: numbers[1] / Self.maxChromaP3, hueAngle: .degrees(numbers[2]))
-        case .okLab:
-//            let normalizedA = numbers[1] / Self.maxChromaP3
-//            let normalizedB = numbers[2] / Self.maxChromaP3
-            self.init(lightnessFraction: numbers[0], chromaFraction: 0, hueAngle: .zero)
+        case .lab, .lch:
+            let lch = Lch(p3)
+            (l, c, h) = (lch.l, lch.c, lch.h)
+        case .okLab, .okLch:
+            let oklch = Oklch(p3)
+            (l, c, h) = (oklch.l, oklch.c, oklch.h)
         }
+        self.init(
+            lightnessFraction: l / colorSpace.lightnessScale,
+            chromaFraction: c / colorSpace.chromaScale,
+            hueAngle: .degrees(h))
     }
 
     private func absoluteColor(colorSpace: ColorSpace) -> XYZConvertable {
-        switch colorSpace {
+        let l = lightnessFraction * colorSpace.lightnessScale
+        let scale = colorSpace.chromaScale
+        return switch colorSpace {
         case .lch:
-            Lch(l: lightnessFraction * 100, c: chromaFraction * 150, h: hueAngle.degrees)
+            Lch(l: l, c: chromaFraction * scale, h: hueAngle.degrees)
         case .lab:
-            Lab(l: lightnessFraction * 100, a: normalizedA * 125, b: normalizedB * 125)
+            Lab(l: l, a: normalizedA * scale, b: normalizedB * scale)
         case .okLch:
-            Oklch(l: lightnessFraction, c: chromaFraction * Self.maxChromaP3, h: hueAngle.degrees)
+            Oklch(l: l, c: chromaFraction * scale, h: hueAngle.degrees)
         case .okLab:
-            Oklab(l: lightnessFraction, a: normalizedA * Self.maxChromaP3, b: normalizedB * Self.maxChromaP3)
+            Oklab(l: l, a: normalizedA * scale, b: normalizedB * scale)
         }
     }
-    
+
     func color(colorSpace: ColorSpace) -> Color {
         Color(absoluteColor(colorSpace: colorSpace))
+    }
+
+    func systemColor(colorSpace: ColorSpace) -> SystemColor {
+        SystemColor(absoluteColor(colorSpace: colorSpace))
+    }
+
+    /// This color realized as display-P3. Useful for converting between metrics or deriving a hex string.
+    func p3(colorSpace: ColorSpace) -> P3 {
+        absoluteColor(colorSpace: colorSpace).p3
+    }
+
+    /// An sRGB hex string (e.g. `#1A2B3C`), gamut-clamped from the color's realized value.
+    func hexString(colorSpace: ColorSpace) -> String {
+        let color = systemColor(colorSpace: colorSpace)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        #if canImport(AppKit)
+        guard let srgb = color.usingColorSpace(.sRGB) else { return "—" }
+        (r, g, b) = (srgb.redComponent, srgb.greenComponent, srgb.blueComponent)
+        #else
+        var a: CGFloat = 0
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        #endif
+        func channel(_ value: CGFloat) -> Int { Int((max(0, min(1, value)) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", channel(r), channel(g), channel(b))
     }
     
     func cssString(colorSpace: ColorSpace, convertedToP3: Bool) -> String {
@@ -132,6 +199,11 @@ struct PaletteColor: Equatable, Identifiable {
         }
     }
     
+    /// The palette rendered as newline-separated CSS colors. Trailing newlines fix layout when the inspector is collapsed.
+    static func cssText(_ colors: [PaletteColor], colorSpace: ColorSpace, convertedToP3: Bool) -> String {
+        colors.map { $0.cssString(colorSpace: colorSpace, convertedToP3: convertedToP3) }.joined(separator: "\n") + "\n\n"
+    }
+
     static let maxChromaP3 = 0.4
     
     static let cssDecimalFormatter: NumberFormatter = {

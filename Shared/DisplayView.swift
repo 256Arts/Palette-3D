@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import RealityKit
 
 #if canImport(AppKit)
 typealias SystemColor = NSColor
@@ -26,59 +25,72 @@ struct DisplayView: View {
     @Binding var convertCSSToP3: Bool
     @Binding var paletteColors: [PaletteColor]
     @Binding var paletteText: String
-    
+
+    /// Called when the user manually edits colors (e.g. via the text editor), so the palette can lock its parameters.
+    var onManualEdit: () -> Void = {}
+
     @State var displayMode: DisplayMode = .sphere
-    @State var sphereNeedsRefresh = true
     @State var canShowTextInputWarning = true
     @State var showingTextInputWarning = false
+    @State private var editingColorIndex: Int?
+    @State private var showingAddColor = false
     @FocusState var textIsFocused: Bool
     
-    @Environment(\.accessibilityAssistiveAccessEnabled) private var isAssistiveAccessEnabled
-    
-    private var colorCountPlacement: ToolbarItemPlacement {
+    private var displayModePlacement: ToolbarItemPlacement {
         #if os(macOS)
-        .primaryAction
+        .principal
         #else
-        .navigationBarLeading
+        .bottomBar
         #endif
     }
-    
+
+    /// Two-way binding to a stored `PaletteColor`, for the details sheet.
+    private func colorValueBinding(_ index: Int) -> Binding<PaletteColor> {
+        Binding(
+            get: { paletteColors.indices.contains(index) ? paletteColors[index] : PaletteColor(lightnessFraction: 0.5, chromaFraction: 0, hueAngle: .zero) },
+            set: { newValue in
+                guard paletteColors.indices.contains(index) else { return }
+                paletteColors[index] = newValue
+                onManualEdit()
+            })
+    }
+
+    private func appendColor(_ color: PaletteColor) {
+        paletteColors.append(color)
+        onManualEdit()
+    }
+
+    /// Appends colors dropped in from elsewhere (another swatch, an app, the system color picker).
+    private func addColors(_ colors: [Color]) {
+        let converted = colors.compactMap { PaletteColor(SystemColor($0), colorSpace: generator.parameters.colorSpace) }
+        guard !converted.isEmpty else { return }
+        paletteColors.append(contentsOf: converted)
+        onManualEdit()
+    }
+
+    private func deleteColor(at index: Int) {
+        guard paletteColors.indices.contains(index) else { return }
+        paletteColors.remove(at: index)
+        onManualEdit()
+    }
+
     var body: some View {
         VStack {
             switch displayMode {
             case .grid:
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 24, maximum: 24))], content: {
-                    ForEach(paletteColors) { pColor in
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(pColor.color(colorSpace: generator.colorSpace))
-                            .frame(width: 24, height: 24)
-                    }
-                })
-                .scenePadding()
+                PaletteGridView(
+                    colors: paletteColors,
+                    colorSpace: generator.parameters.colorSpace,
+                    onSelect: { editingColorIndex = $0 },
+                    onAdd: { showingAddColor = true },
+                    onDropColors: addColors,
+                    onDelete: { deleteColor(at: $0) })
             case .sphere:
-                RealityView { content in
-                    //
-                } update: { content in
-                    guard sphereNeedsRefresh else { return }
-                    
-                    while !content.entities.isEmpty {
-                        content.remove(content.entities[0])
-                    }
-                    
-                    for pColor in paletteColors {
-                        let model = ModelEntity(
-                            mesh: .generateSphere(radius: Float(0.1 * Self.scale)),
-                            materials: [SimpleMaterial(color: SystemColor(pColor.color(colorSpace: generator.colorSpace)), isMetallic: false)])
-                        model.position.x = Float((pColor.visualizedX * Self.scale) / generator.chromaMultiplier)
-                        model.position.y = Float(pColor.visualizedY * Self.scale)
-                        model.position.z = Float((pColor.visualizedZ * Self.scale) / generator.chromaMultiplier)
-                        content.add(model)
-                    }
-                }
-                .realityViewLayoutBehavior(.centered)
-                #if !os(visionOS)
-                .realityViewCameraControls(.orbit)
-                #endif
+                PaletteSphereView(
+                    colors: paletteColors,
+                    colorSpace: generator.parameters.colorSpace,
+                    chromaMultiplier: generator.parameters.chromaMultiplier,
+                    onSelect: { editingColorIndex = $0 })
             case .text:
                 TextEditor(text: $paletteText)
                     .autocorrectionDisabled()
@@ -99,7 +111,8 @@ struct DisplayView: View {
                         
                         let cssStrings = newValue.components(separatedBy: "\n")
                         paletteColors = cssStrings.compactMap { PaletteColor(css: $0) }
-                        
+                        onManualEdit()
+
                         if newValue.contains("lab(") /* Matches lab and oklab */ {
                             showingTextInputWarning = true
                             canShowTextInputWarning = false
@@ -111,14 +124,7 @@ struct DisplayView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
-            ToolbarItem(placement: colorCountPlacement) {
-                Text("\(paletteColors.count) Colors")
-                    .foregroundStyle(.secondary)
-                    .fixedSize()
-            }
-            .sharedBackgroundVisibility(.hidden)
-            
-            ToolbarItem(placement: .principal) {
+            ToolbarItem(placement: displayModePlacement) {
                 Picker("Display Mode", selection: $displayMode) {
                     Image(systemName: "rotate.3d")
                         .tag(DisplayMode.sphere)
@@ -134,60 +140,61 @@ struct DisplayView: View {
             
             #if !os(macOS)
             if displayMode == .text {
-//                ToolbarItem(placement: .primaryAction) {
-//                    ShareLink(item: paletteText)
-//                }
-                
-                ToolbarItem(placement: .primaryAction) {
+                // The P3 toggle is the primary control in text mode; pin it so it never overflows.
+                ToolbarItem(placement: .topBarPinnedTrailing) {
                     Toggle("P3", isOn: $convertCSSToP3)
                 }
             }
-            
-            if !isAssistiveAccessEnabled {
-                ToolbarItemGroup(placement: .secondaryAction) {
-                    Link(destination: URL(string: "https://www.256arts.com/")!) {
-                        Label("Developer Website", systemImage: "safari")
-                    }
-                    Link(destination: URL(string: "https://www.256arts.com/joincommunity/")!) {
-                        Label("Join Community", systemImage: "bubble.left.and.bubble.right")
-                    }
-                    Link(destination: URL(string: "https://github.com/256Arts/Palette-3D")!) {
-                        Label("Contribute on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-                    }
-                }
-            }
-            
+
+            #if os(iOS)
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 
-                Button("Done") {
+                Button("Done", systemImage: "checkmark") {
                     textIsFocused = false
                 }
             }
             #endif
+            #endif
         }
         .onChange(of: paletteColors) {
-            sphereNeedsRefresh = true
+            // Keep the CSS text in sync with grid/sphere edits, but don't fight the user while they type.
+            if !textIsFocused {
+                paletteText = PaletteColor.cssText(paletteColors, colorSpace: generator.parameters.colorSpace, convertedToP3: convertCSSToP3)
+            }
         }
         .onChange(of: convertCSSToP3) { _, newValue in
-            paletteText = paletteColors.map({ $0.cssString(colorSpace: generator.colorSpace, convertedToP3: newValue) }).joined(separator: "\n") + "\n\n" // To fix layout when inspector is collapsed
+            paletteText = PaletteColor.cssText(paletteColors, colorSpace: generator.parameters.colorSpace, convertedToP3: newValue)
         }
         .alert("Text Input Not Supported", isPresented: $showingTextInputWarning) {
             Button("OK") { }
         } message: {
             Text("Only Lch and Oklch support text input. Lab, Oklab, and P3 are output only.")
         }
+        .sheet(isPresented: editingColorPresented) {
+            if let index = editingColorIndex, paletteColors.indices.contains(index) {
+                ColorDetailsView(
+                    color: colorValueBinding(index),
+                    colorSpace: generator.parameters.colorSpace,
+                    onDelete: {
+                        deleteColor(at: index)
+                        editingColorIndex = nil
+                    })
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $showingAddColor) {
+            AddColorView(colorSpace: generator.parameters.colorSpace, onAdd: appendColor)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
-    
-    nonisolated static var scale: Double {
-        // Make scales slightly smaller to prevent balls on the edge from clipping
-        #if os(visionOS)
-        0.46
-        #else
-        0.98
-        #endif
+
+    private var editingColorPresented: Binding<Bool> {
+        Binding(get: { editingColorIndex != nil }, set: { if !$0 { editingColorIndex = nil } })
     }
-    
+
 }
 
 #Preview {

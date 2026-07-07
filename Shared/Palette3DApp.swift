@@ -6,67 +6,43 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct Palette3DApp: App {
-    
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    @Environment(\.openWindow) private var openWindow
-    
-    @State var generator = PaletteGenerator()
-    @State var convertCSSToP3 = false
-    @State var paletteColors: [PaletteColor] = []
-    @State var paletteText = ""
-    @State var showingInspector = true
-    @State var selectedDetent: PresentationDetent = .medium
-    
-    #if canImport(UIKit)
-    let isPhone = UIDevice.current.userInterfaceIdiom == .phone
-    #else
-    let isPhone = false
-    #endif
-    
+
+    /// A single shared container so every window (including the visionOS volume) reads the same store.
+    private let container: ModelContainer
+
+    @State private var showingEvent = false
+
+    init() {
+        container = try! ModelContainer(for: Palette.self)
+    }
+
     var body: some Scene {
-        #if os(visionOS)
         WindowGroup {
-            NavigationStack {
-                ParametersView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
-                    .toolbar {
-                        Button("Open Display") {
-                            openWindow(id: "display")
-                        }
+            PaletteListView()
+                .alert("Event Intro", isPresented: $showingEvent) {
+                    Button("OK", role: .close) { }
+                } message: {
+                    Text("Now let's celebrate by designing a color palette in the style using the new features!")
+                }
+                .onOpenURL { url in
+                    if url.path().contains("palette3d/appstoreevent") {
+                        showingEvent = true
                     }
-            }
+                }
         }
-        .defaultSize(width: 500, height: 750)
-        
-        WindowGroup("Display", id: "display") {
-            DisplayView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
+        .modelContainer(container)
+
+        #if os(visionOS)
+        WindowGroup("Display", id: "display", for: PersistentIdentifier.self) { $paletteID in
+            VolumetricDisplayView(paletteID: paletteID)
         }
         .windowStyle(.volumetric)
         .defaultSize(width: 1, height: 1, depth: 1, in: .meters)
-        #else
-        WindowGroup {
-            NavigationStack {
-                DisplayView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
-                    .safeAreaPadding(.bottom, selectedDetent == .height(64) || horizontalSizeClass == .regular || !isPhone ? 0 : 400)
-                    .toolbar {
-                        if !showingInspector {
-                            Button {
-                                showingInspector = true
-                            } label: {
-                                Image(systemName: "sidebar.trailing")
-                            }
-                        }
-                    }
-            }
-            .inspector(isPresented: $showingInspector) {
-                ParametersView(generator: generator, convertCSSToP3: $convertCSSToP3, paletteColors: $paletteColors, paletteText: $paletteText)
-                    .presentationDetents([.height(64), .medium, .large], selection: $selectedDetent)
-                    .presentationBackgroundInteraction(.enabled)
-                    .interactiveDismissDisabled(isPhone)
-            }
-        }
+        .modelContainer(container)
         #endif
     }
 }
