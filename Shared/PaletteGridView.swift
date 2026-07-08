@@ -7,6 +7,11 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 /// A gamut to highlight against. Colors that fall outside the selected gamut are clamped when
 /// exported, so the grid flags them with a warning triangle.
@@ -21,6 +26,18 @@ enum GamutFilter: String, CaseIterable, Identifiable {
         case .p3: "P3 Representable"
         case .srgb: "RGB Representable"
         }
+    }
+
+    /// The gamut of the device's display, so the grid can flag colors it can't show. Falls back to
+    /// `.p3` when the display gamut is unknown (all modern Apple displays are at least P3).
+    static var deviceDefault: GamutFilter {
+        #if canImport(AppKit)
+        NSScreen.main?.canRepresent(.displayP3) == false ? .srgb : .p3
+        #elseif canImport(UIKit)
+        UITraitCollection.current.displayGamut == .SRGB ? .srgb : .p3
+        #else
+        .p3
+        #endif
     }
 
     /// Whether the given color is clamped in this gamut. `.none` never flags a color.
@@ -43,15 +60,15 @@ struct PaletteGridView: View {
     var onDelete: (Int) -> Void
     var onReorder: (ReorderDifference<PaletteColor.ID, ReorderableSingleCollectionIdentifier>) -> Void
 
-    @State private var cellSize: CGFloat = 64
-    @State private var gamutFilter: GamutFilter = .none
+    @SceneStorage("gridCellSize") private var cellSize: Double = 64
+    @State private var gamutFilter: GamutFilter = .deviceDefault
     @GestureState private var pinch: CGFloat = 1
 
     private static let minSize: CGFloat = 44
     private static let maxSize: CGFloat = 220
 
     private var effectiveSize: CGFloat {
-        min(max(cellSize * pinch, Self.minSize), Self.maxSize)
+        min(max(CGFloat(cellSize) * pinch, Self.minSize), Self.maxSize)
     }
     private var showsName: Bool { effectiveSize >= 96 }
     private var showsHex: Bool { effectiveSize >= 148 }
@@ -117,8 +134,7 @@ struct PaletteGridView: View {
                         if gamutFilter.clamps(color, colorSpace: colorSpace) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: effectiveSize * 0.4))
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.black, .yellow)
+                                .foregroundStyle(.white.opacity(0.8))
                                 .shadow(radius: 2)
                         }
                     }
@@ -161,7 +177,7 @@ struct PaletteGridView: View {
         MagnifyGesture()
             .updating($pinch) { value, state, _ in state = value.magnification }
             .onEnded { value in
-                cellSize = min(max(cellSize * value.magnification, Self.minSize), Self.maxSize)
+                cellSize = Double(min(max(CGFloat(cellSize) * value.magnification, Self.minSize), Self.maxSize))
             }
     }
 }

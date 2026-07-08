@@ -3,10 +3,11 @@
 //  Palette 3D
 //
 //  A sheet for composing a new palette color: a full-bleed preview, a name, and a color picker.
-//  A color can also be dropped onto the preview to set it.
+//  A color can also be dropped onto the preview or sampled from a photo/image file.
 //
 
 import SwiftUI
+import PhotosUI
 #if canImport(UIKit)
 import UIKit
 #elseif canImport(AppKit)
@@ -15,6 +16,12 @@ import AppKit
 
 struct AddColorView: View {
 
+    /// A picked/captured image wrapped so it can drive an `.sheet(item:)`.
+    private struct PickableImage: Identifiable {
+        let id = UUID()
+        let cgImage: CGImage
+    }
+
     let colorSpace: ColorSpace
     var onAdd: (PaletteColor) -> Void
 
@@ -22,6 +29,14 @@ struct AddColorView: View {
 
     @State private var color: Color = .gray
     @State private var name: String = ""
+
+    @State private var photoItem: PhotosPickerItem?
+    @State private var showPhotosPicker = false
+    @State private var showFileImporter = false
+    @State private var pickableImage: PickableImage?
+    #if os(iOS)
+    @State private var showCamera = false
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -36,12 +51,14 @@ struct AddColorView: View {
                             return true
                         }
 
-                    HStack {
-                        TextField("Name", text: $name)
-                            .font(.title2.weight(.semibold))
-                            .textFieldStyle(.plain)
-                        ColorPicker("Color", selection: $color, supportsOpacity: false)
-                            .labelsHidden()
+                    VStack(spacing: 16) {
+                        HStack {
+                            TextField("Name", text: $name)
+                                .font(.title2.weight(.semibold))
+                                .textFieldStyle(.plain)
+                            ColorPicker("Color", selection: $color, supportsOpacity: false)
+                                .labelsHidden()
+                        }
                     }
                     .padding()
                 }
@@ -54,10 +71,49 @@ struct AddColorView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel", systemImage: "xmark") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add", systemImage: "plus", action: add)
+                    Button("Add", systemImage: "checkmark", action: add)
+                }
+                ToolbarItem {
+                    Menu {
+                        #if os(iOS)
+                        Button("Take Photo", systemImage: "camera") { showCamera = true }
+                        #endif
+                        Button("Choose Photo", systemImage: "photo.on.rectangle") { showPhotosPicker = true }
+                        Button("Choose File", systemImage: "folder") { showFileImporter = true }
+                    } label: {
+                        Label("Pick Color from Image", systemImage: "eyedropper")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .photosPicker(isPresented: $showPhotosPicker, selection: $photoItem, matching: .images)
+            .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.image]) { result in
+                if case let .success(url) = result, let cgImage = ImageLoader.cgImage(fromFile: url) {
+                    pickableImage = PickableImage(cgImage: cgImage)
+                }
+            }
+            #if os(iOS)
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { cgImage in
+                    pickableImage = PickableImage(cgImage: cgImage)
+                }
+                .ignoresSafeArea()
+            }
+            #endif
+            .sheet(item: $pickableImage) { image in
+                ImageColorPickerView(cgImage: image.cgImage) { color = $0 }
+            }
+            .onChange(of: photoItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
+                       let cgImage = ImageLoader.cgImage(from: data) {
+                        pickableImage = PickableImage(cgImage: cgImage)
+                    }
+                    photoItem = nil
                 }
             }
         }
