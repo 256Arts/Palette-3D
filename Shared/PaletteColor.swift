@@ -45,10 +45,11 @@ enum ColorSpace: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-/// A user-selectable way to express a color as text, spanning the CSS color-space notations plus
-/// sRGB-derived RGB/Hex/HSL/HSB. Used both for the color detail rows and for choosing an export format.
+/// A user-selectable way to express a color as text, spanning the CSS color-space notations,
+/// sRGB-derived RGB/Hex/HSL/HSV/HWB, and ready-to-paste code snippets for common UI frameworks.
+/// Used both for the color detail rows and for choosing an export format.
 enum ColorRepresentation: String, CaseIterable, Identifiable {
-    case oklch, oklab, lch, lab, displayP3, rgb, hex, hsl, hsb
+    case oklch, oklab, lch, lab, displayP3, rgb, hex, hsl, hsb, hwb, swiftUI, uiKit, appKit, java, android
 
     var id: Self { self }
 
@@ -62,7 +63,57 @@ enum ColorRepresentation: String, CaseIterable, Identifiable {
         case .rgb: "RGB"
         case .hex: "Hex"
         case .hsl: "HSL"
-        case .hsb: "HSB"
+        case .hsb: "HSV/HSB"
+        case .hwb: "HWB"
+        case .swiftUI: "SwiftUI"
+        case .uiKit: "UIKit"
+        case .appKit: "AppKit"
+        case .java: "Java"
+        case .android: "Android"
+        }
+    }
+}
+
+/// A standard color gamut, used both to label a palette and to group the color-format rows in the detail view.
+enum Gamut: String, CaseIterable, Identifiable {
+    case wide = "Wide"
+    case displayP3 = "P3"
+    case sRGB = "sRGB"
+
+    var id: String { rawValue }
+
+    /// The export-menu title for this gamut's formats.
+    var shareMenuTitle: String {
+        self == .wide ? "Wide Gamut" : rawValue
+    }
+
+    /// The color representations to list under this gamut, in display order. The framework snippets
+    /// (SwiftUI/UIKit/AppKit) appear under both P3 and sRGB — realized in that gamut's RGB space.
+    var representations: [ColorRepresentation] {
+        switch self {
+        case .wide: [.oklch, .oklab, .lch, .lab]
+        case .displayP3: [.displayP3, .swiftUI, .uiKit, .appKit]
+        case .sRGB: [.rgb, .hex, .hsl, .hsb, .hwb, .swiftUI, .uiKit, .appKit, .java, .android]
+        }
+    }
+
+    /// Whether `color` falls outside this gamut, so its values in this gamut's formats are clamped.
+    func clamps(_ color: PaletteColor, colorSpace: ColorSpace) -> Bool {
+        switch self {
+        case .wide: false
+        case .displayP3: color.isOutsideP3Gamut(colorSpace: colorSpace)
+        case .sRGB: color.isOutsideSRGBGamut(colorSpace: colorSpace)
+        }
+    }
+
+    /// The smallest gamut that fully contains every color in `colors`.
+    static func containing(_ colors: [PaletteColor], colorSpace: ColorSpace) -> Gamut {
+        if colors.allSatisfy({ !$0.isOutsideSRGBGamut(colorSpace: colorSpace) }) {
+            .sRGB
+        } else if colors.allSatisfy({ !$0.isOutsideP3Gamut(colorSpace: colorSpace) }) {
+            .displayP3
+        } else {
+            .wide
         }
     }
 }
@@ -271,9 +322,69 @@ struct PaletteColor: Equatable, Identifiable, Codable {
         return "hsb(\(hueDegrees(r, g, b)) \(percent(s)) \(percent(maxV)))"
     }
 
+    /// The realized color as CSS `hwb()`, derived from clamped sRGB.
+    func hwbString(colorSpace: ColorSpace) -> String {
+        let (r, g, b) = clampedSRGBComponents(colorSpace: colorSpace)
+        let w = min(r, g, b), blackness = 1 - max(r, g, b)
+        return "hwb(\(hueDegrees(r, g, b)) \(percent(w)) \(percent(blackness)))"
+    }
+
+    /// The realized color's display-P3 channels clamped to [0, 1], for wide-gamut code snippets.
+    private func clampedP3Components(colorSpace: ColorSpace) -> (r: Double, g: Double, b: Double) {
+        let p3 = p3(colorSpace: colorSpace)
+        func clamp(_ value: Double) -> Double { max(0, min(1, value)) }
+        return (clamp(p3.r), clamp(p3.g), clamp(p3.b))
+    }
+
+    /// A color channel formatted to 3 decimal places for code snippets.
+    private static func codeComponent(_ value: Double) -> String {
+        String(format: "%.3f", value)
+    }
+
+    /// The realized RGB channels for a framework snippet in the given gamut's RGB space, clamped to [0, 1].
+    private func rgbComponents(colorSpace: ColorSpace, gamut: Gamut) -> (r: Double, g: Double, b: Double) {
+        gamut == .sRGB ? clampedSRGBComponents(colorSpace: colorSpace) : clampedP3Components(colorSpace: colorSpace)
+    }
+
+    /// A SwiftUI `Color` initializer in the given gamut's RGB space (sRGB or Display P3).
+    func swiftUIString(colorSpace: ColorSpace, gamut: Gamut) -> String {
+        let (r, g, b) = rgbComponents(colorSpace: colorSpace, gamut: gamut), c = Self.codeComponent
+        let space = gamut == .sRGB ? ".sRGB" : ".displayP3"
+        return "Color(\(space), red: \(c(r)), green: \(c(g)), blue: \(c(b)))"
+    }
+
+    /// A UIKit `UIColor` initializer in the given gamut's RGB space (sRGB or Display P3).
+    func uiKitString(colorSpace: ColorSpace, gamut: Gamut) -> String {
+        let (r, g, b) = rgbComponents(colorSpace: colorSpace, gamut: gamut), c = Self.codeComponent
+        return gamut == .sRGB
+            ? "UIColor(red: \(c(r)), green: \(c(g)), blue: \(c(b)), alpha: 1)"
+            : "UIColor(displayP3Red: \(c(r)), green: \(c(g)), blue: \(c(b)), alpha: 1)"
+    }
+
+    /// An AppKit `NSColor` initializer in the given gamut's RGB space (sRGB or Display P3).
+    func appKitString(colorSpace: ColorSpace, gamut: Gamut) -> String {
+        let (r, g, b) = rgbComponents(colorSpace: colorSpace, gamut: gamut), c = Self.codeComponent
+        return gamut == .sRGB
+            ? "NSColor(srgbRed: \(c(r)), green: \(c(g)), blue: \(c(b)), alpha: 1)"
+            : "NSColor(displayP3Red: \(c(r)), green: \(c(g)), blue: \(c(b)), alpha: 1)"
+    }
+
+    /// A `java.awt.Color` constructor from 8-bit sRGB channels.
+    func javaString(colorSpace: ColorSpace) -> String {
+        let (r, g, b) = srgb8Bit(colorSpace: colorSpace)
+        return "new Color(\(r), \(g), \(b))"
+    }
+
+    /// A Jetpack Compose `Color` from an ARGB hex literal.
+    func androidString(colorSpace: ColorSpace) -> String {
+        let (r, g, b) = srgb8Bit(colorSpace: colorSpace)
+        return String(format: "Color(0xFF%02X%02X%02X)", r, g, b)
+    }
+
     /// This color expressed in the given representation. The CSS color-space notations are re-derived from
     /// the realized P3 value, so each is a true conversion independent of the palette's own color space.
-    func string(_ representation: ColorRepresentation, colorSpace: ColorSpace) -> String {
+    /// - Parameter gamut: The RGB space (P3 or sRGB) for the framework snippets; ignored by other representations.
+    func string(_ representation: ColorRepresentation, colorSpace: ColorSpace, gamut: Gamut = .displayP3) -> String {
         switch representation {
         case .oklch: converted(.okLch, from: colorSpace)
         case .oklab: converted(.okLab, from: colorSpace)
@@ -284,6 +395,12 @@ struct PaletteColor: Equatable, Identifiable, Codable {
         case .hex: hexString(colorSpace: colorSpace)
         case .hsl: hslString(colorSpace: colorSpace)
         case .hsb: hsbString(colorSpace: colorSpace)
+        case .hwb: hwbString(colorSpace: colorSpace)
+        case .swiftUI: swiftUIString(colorSpace: colorSpace, gamut: gamut)
+        case .uiKit: uiKitString(colorSpace: colorSpace, gamut: gamut)
+        case .appKit: appKitString(colorSpace: colorSpace, gamut: gamut)
+        case .java: javaString(colorSpace: colorSpace)
+        case .android: androidString(colorSpace: colorSpace)
         }
     }
 
@@ -291,18 +408,6 @@ struct PaletteColor: Equatable, Identifiable, Codable {
         PaletteColor(p3(colorSpace: colorSpace), colorSpace: target).cssString(colorSpace: target, convertedToP3: false)
     }
 
-    /// A note about clamping for this representation, or `nil` if it can represent the color exactly.
-    func gamutWarning(_ representation: ColorRepresentation, colorSpace: ColorSpace) -> String? {
-        switch representation {
-        case .displayP3:
-            isOutsideP3Gamut(colorSpace: colorSpace) ? "Outside the Display P3 gamut." : nil
-        case .rgb, .hex, .hsl, .hsb:
-            isOutsideSRGBGamut(colorSpace: colorSpace) ? "Outside the sRGB gamut. The value shown is clamped." : nil
-        case .oklch, .oklab, .lch, .lab:
-            nil
-        }
-    }
-    
     func cssString(colorSpace: ColorSpace, convertedToP3: Bool) -> String {
         
         func round(_ number: Double) -> String {
@@ -336,8 +441,8 @@ struct PaletteColor: Equatable, Identifiable, Codable {
     }
 
     /// The palette rendered as newline-separated colors in the given representation, for export.
-    static func text(_ colors: [PaletteColor], representation: ColorRepresentation, colorSpace: ColorSpace) -> String {
-        colors.map { $0.string(representation, colorSpace: colorSpace) }.joined(separator: "\n")
+    static func text(_ colors: [PaletteColor], representation: ColorRepresentation, colorSpace: ColorSpace, gamut: Gamut = .displayP3) -> String {
+        colors.map { $0.string(representation, colorSpace: colorSpace, gamut: gamut) }.joined(separator: "\n")
     }
 
     static let maxChromaP3 = 0.4

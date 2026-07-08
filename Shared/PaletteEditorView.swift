@@ -64,10 +64,12 @@ struct PaletteEditorView: View {
                 #endif
                 ToolbarItem(placement: .primaryAction) {
                     Menu("Export", systemImage: "square.and.arrow.up") {
-                        Menu("Share CSS", systemImage: "curlybraces") {
-                            ForEach(ColorRepresentation.allCases) { representation in
-                                ShareLink(representation.name,
-                                          item: PaletteColor.text(palette.colors, representation: representation, colorSpace: generator.parameters.colorSpace))
+                        ForEach(Gamut.allCases) { gamut in
+                            Menu(gamut.shareMenuTitle, systemImage: "square.and.arrow.up") {
+                                ForEach(gamut.representations) { representation in
+                                    ShareLink(representation.name,
+                                              item: PaletteColor.text(palette.colors, representation: representation, colorSpace: generator.parameters.colorSpace, gamut: gamut))
+                                }
                             }
                         }
                         #if os(macOS)

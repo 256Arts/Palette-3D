@@ -15,6 +15,7 @@ struct PaletteListView: View {
     @Query(sort: \Palette.dateModified, order: .reverse) private var palettes: [Palette]
 
     @State private var path: [Palette] = []
+    @State private var showingDuo = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -41,7 +42,15 @@ struct PaletteListView: View {
                     ContentUnavailableView("No Palettes", systemImage: "swatchpalette", description: Text("Create a palette, or drop a .clr file here."))
                 }
             }
+            .sheet(isPresented: $showingDuo) {
+                DuoView()
+            }
             .toolbar {
+                ToolbarItem {
+                    Button("Duo", systemImage: "swirl.circle.righthalf.filled") {
+                        showingDuo = true
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Menu("New Palette", systemImage: "plus") {
                         Button("Perfect Palette", systemImage: "sparkles") {
@@ -111,8 +120,20 @@ private struct PaletteRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(palette.name)
-                if palette.parameters != nil {
-                    Image(systemName: palette.isCustomized ? "sparkles.rectangle.stack" : "sparkles")
+                if !palette.isCustomized, palette.parameters != nil {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(.secondary)
+                }
+                if !palette.colors.isEmpty {
+                    let gamut = Gamut.containing(palette.colors, colorSpace: colorSpace)
+                    Text(gamut.rawValue)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background {
+                            Capsule()
+                                .stroke(.secondary)
+                        }
                         .foregroundStyle(.secondary)
                 }
                 Spacer()

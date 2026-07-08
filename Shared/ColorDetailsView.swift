@@ -19,23 +19,30 @@ struct ColorDetailsView: View {
     let colorSpace: ColorSpace
     var onDelete: () -> Void
 
+    /// The gamut whose color formats are listed. Defaults to the tightest gamut that contains the color.
+    @State private var gamut: Gamut
+
     @Environment(\.dismiss) private var dismiss
+
+    init(color: Binding<PaletteColor>, colorSpace: ColorSpace, onDelete: @escaping () -> Void) {
+        _color = color
+        self.colorSpace = colorSpace
+        self.onDelete = onDelete
+        _gamut = State(initialValue: Gamut.containing([color.wrappedValue], colorSpace: colorSpace))
+    }
 
     private struct Metric: Identifiable {
         let name: String
         let value: String
-        /// A message explaining that this representation had to clamp the color, or `nil` if it's exact.
-        var warning: String? = nil
         var id: String { name }
     }
 
-    /// The same color expressed in every representation. CSS color-space rows are re-derived from the realized
-    /// P3 value so each is a true conversion, not the same fractions reinterpreted in a different space's scale.
+    /// The color expressed in every representation belonging to the selected gamut. CSS color-space rows are
+    /// re-derived from the realized P3 value so each is a true conversion, not the same fractions reinterpreted.
     private var metrics: [Metric] {
-        ColorRepresentation.allCases.map { representation in
+        gamut.representations.map { representation in
             Metric(name: representation.name,
-                   value: color.string(representation, colorSpace: colorSpace),
-                   warning: color.gamutWarning(representation, colorSpace: colorSpace))
+                   value: color.string(representation, colorSpace: colorSpace, gamut: gamut))
         }
     }
 
@@ -79,13 +86,17 @@ struct ColorDetailsView: View {
                                 .labelsHidden()
                         }
 
-                        VStack(spacing: 0) {
-                            ForEach(Array(metrics.enumerated()), id: \.element.id) { index, metric in
-                                if index > 0 { Divider() }
-                                metricRow(metric)
+                        VStack(spacing: 16) {
+                            gamutPicker
+
+                            VStack(spacing: 0) {
+                                ForEach(Array(metrics.enumerated()), id: \.element.id) { index, metric in
+                                    if index > 0 { Divider() }
+                                    metricRow(metric)
+                                }
                             }
+                            .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
                         }
-                        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
 
                         Button("Delete Color", systemImage: "trash", role: .destructive) {
                             onDelete()
@@ -113,23 +124,27 @@ struct ColorDetailsView: View {
         }
     }
 
+    /// A segmented picker over the gamuts. A ⚠ suffix marks a gamut that clamps the color — a Unicode glyph
+    /// rather than an SF Symbol image, which a segmented Picker won't render inline.
+    private var gamutPicker: some View {
+        Picker("Gamut", selection: $gamut) {
+            ForEach(Gamut.allCases) { gamut in
+                let label = gamut.clamps(color, colorSpace: colorSpace) ? "\(gamut.rawValue) ⚠" : gamut.rawValue
+                Text(label).tag(gamut)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
     private func metricRow(_ metric: Metric) -> some View {
         HStack(spacing: 12) {
             Text(metric.name)
                 .foregroundStyle(.secondary)
                 .frame(width: 90, alignment: .leading)
-            HStack(spacing: 6) {
-                Text(metric.value)
-                    .monospaced()
-                    .textSelection(.enabled)
-                if let warning = metric.warning {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .help(warning)
-                        .accessibilityLabel(warning)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(metric.value)
+                .monospaced()
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Button("Copy", systemImage: "doc.on.doc") { copy(metric.value) }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
