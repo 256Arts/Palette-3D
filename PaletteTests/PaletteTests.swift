@@ -77,4 +77,50 @@ struct PaletteTests {
         }
     }
 
+    @Test func testGPLParsing() throws {
+        let gpl = """
+        GIMP Palette
+        Name: My Palette
+        Columns: 4
+        # A comment
+        255   0   0 Red
+          0 255   0
+        # Another comment
+
+        0 0 255 Full Blue
+        """
+        let palette = try #require(GIMPPalette(gpl: gpl, colorSpace: .okLch))
+        #expect(palette.name == "My Palette")
+        #expect(palette.colors.count == 3)
+        #expect(palette.colors[0].name == "Red")
+        #expect(palette.colors[1].name == nil) // No name given.
+        #expect(palette.colors[2].name == "Full Blue") // Multi-word names are preserved.
+
+        // sRGB pure red round-trips back to 8-bit sRGB (within rounding).
+        let (r, g, b) = palette.colors[0].srgb8Bit(colorSpace: .okLch)
+        #expect(r == 255 && g == 0 && b == 0)
+
+        // A file missing the magic header is rejected.
+        #expect(GIMPPalette(gpl: "255 0 0\n", colorSpace: .okLch) == nil)
+    }
+
+    @Test func testGPLRoundTrip() throws {
+        let colors = [
+            PaletteColor(sRGB8BitRed: 18, green: 52, blue: 86, name: "Navy", colorSpace: .okLch),
+            PaletteColor(sRGB8BitRed: 200, green: 100, blue: 50, colorSpace: .okLch)
+        ].compactMap { $0 }
+        #expect(colors.count == 2)
+
+        let text = colors.gplString(named: "Round Trip", colorSpace: .okLch)
+        #expect(text.hasPrefix("GIMP Palette\nName: Round Trip\nColumns: 0\n#\n"))
+
+        let reparsed = try #require(GIMPPalette(gpl: text, colorSpace: .okLch))
+        #expect(reparsed.name == "Round Trip")
+        #expect(reparsed.colors.count == 2)
+        #expect(reparsed.colors[0].name == "Navy")
+        for (original, parsed) in zip(colors, reparsed.colors) {
+            #expect(original.srgb8Bit(colorSpace: .okLch) == parsed.srgb8Bit(colorSpace: .okLch))
+        }
+    }
+
 }

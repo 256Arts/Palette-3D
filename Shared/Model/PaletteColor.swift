@@ -185,6 +185,19 @@ struct PaletteColor: Equatable, Identifiable, Codable {
         self.init(p3, colorSpace: colorSpace)
     }
 
+    /// Creates a palette color from 8-bit sRGB channels (0–255), as used by GIMP palettes.
+    /// Returns `nil` only if the channels can't be realized as a color (sRGB always fits inside P3, so in practice never).
+    init?(sRGB8BitRed r: Int, green g: Int, blue b: Int, name: String? = nil, colorSpace: ColorSpace) {
+        func channel(_ value: Int) -> CGFloat { CGFloat(max(0, min(255, value))) / 255 }
+        #if canImport(UIKit)
+        let color = SystemColor(red: channel(r), green: channel(g), blue: channel(b), alpha: 1)
+        #elseif canImport(AppKit)
+        let color = SystemColor(srgbRed: channel(r), green: channel(g), blue: channel(b), alpha: 1)
+        #endif
+        self.init(color, colorSpace: colorSpace)
+        self.name = name
+    }
+
     /// Creates a palette color from a display-P3 color, mapped into the given color space's fraction model.
     init(_ p3: P3, colorSpace: ColorSpace) {
         let l: Double, c: Double, h: Double
@@ -246,7 +259,7 @@ struct PaletteColor: Equatable, Identifiable, Codable {
     }
 
     /// The color's sRGB channels as 8-bit integers (0–255), gamut-clamped from the realized value.
-    private func srgb8Bit(colorSpace: ColorSpace) -> (r: Int, g: Int, b: Int) {
+    func srgb8Bit(colorSpace: ColorSpace) -> (r: Int, g: Int, b: Int) {
         let (r, g, b) = rawSRGBComponents(colorSpace: colorSpace)
         func channel(_ value: CGFloat) -> Int { Int((max(0, min(1, value)) * 255).rounded()) }
         return (channel(r), channel(g), channel(b))

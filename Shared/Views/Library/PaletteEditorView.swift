@@ -18,6 +18,7 @@ struct PaletteEditorView: View {
 
     @State private var exportError: String?
     @State private var showingDiscardConfirmation = false
+    @State private var showingAnalysis = false
 
     @State private var generator = PaletteGenerator()
     @State private var paletteText = ""
@@ -72,6 +73,10 @@ struct PaletteEditorView: View {
                                 }
                             }
                         }
+                        ShareLink(item: GIMPPaletteExport(name: palette.name, colors: palette.colors, colorSpace: generator.parameters.colorSpace),
+                                  preview: SharePreview("\(palette.name).gpl")) {
+                            Label("GIMP Palette File", systemImage: "swatchpalette")
+                        }
                         #if os(macOS)
                         Button("Save as Color List…", systemImage: "swatchpalette") {
                             exportColorList()
@@ -83,6 +88,13 @@ struct PaletteEditorView: View {
                 #if os(iOS) || os(macOS)
                 .visibilityPriority(.high)
                 #endif
+
+                ToolbarItem(placement: .secondaryAction) {
+                    Button("Analyze", systemImage: "chart.bar.xaxis") {
+                        showingAnalysis = true
+                    }
+                    .disabled(palette.colors.count < 2)
+                }
 
                 // Only a customized perfect palette can be reverted to its generated colors.
                 if palette.parameters != nil && palette.isCustomized {
@@ -102,6 +114,9 @@ struct PaletteEditorView: View {
                 Button("OK") { }
             } message: { message in
                 Text(message)
+            }
+            .sheet(isPresented: $showingAnalysis) {
+                PaletteAnalysisView(colors: palette.colors, colorSpace: generator.parameters.colorSpace)
             }
             .onChange(of: generator.parameters) { _, parameters in
                 regenerate(parameters)

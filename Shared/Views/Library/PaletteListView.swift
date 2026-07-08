@@ -2,7 +2,8 @@
 //  PaletteListView.swift
 //  Palette 3D
 //
-//  Root list of saved palettes. Create perfect/empty palettes, or drop a `.clr` file to import (macOS).
+//  Root list of saved palettes. Create perfect/empty palettes, or import a `.gpl` (GIMP palette,
+//  any platform) or `.clr` (macOS) file — via the import menu or by dropping onto the list.
 //
 
 import SwiftUI
@@ -16,6 +17,7 @@ struct PaletteListView: View {
 
     @State private var path: [Palette] = []
     @State private var showingDuo = false
+    @State private var showingGPLImporter = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -39,7 +41,7 @@ struct PaletteListView: View {
             }
             .overlay {
                 if palettes.isEmpty {
-                    ContentUnavailableView("No Palettes", systemImage: "swatchpalette", description: Text("Create a palette, or drop a .clr file here."))
+                    ContentUnavailableView("No Palettes", systemImage: "swatchpalette", description: Text("Create a palette, or import a .gpl file."))
                 }
             }
             .sheet(isPresented: $showingDuo) {
@@ -58,6 +60,10 @@ struct PaletteListView: View {
                         }
                         Button("Empty Palette", systemImage: "square.dashed") {
                             create(.plain(name: "Palette"))
+                        }
+                        Divider()
+                        Button("Import GIMP Palette…", systemImage: "square.and.arrow.down") {
+                            showingGPLImporter = true
                         }
                     }
                 }
@@ -79,9 +85,14 @@ struct PaletteListView: View {
                 }
                 #endif
             }
+            .fileImporter(isPresented: $showingGPLImporter, allowedContentTypes: [.gimpPalette]) { result in
+                if case let .success(url) = result {
+                    importGPL(from: url)
+                }
+            }
             #if os(macOS)
             .dropDestination(for: URL.self) { urls, _ in
-                importCLR(urls)
+                importFiles(urls)
             }
             #endif
         }
@@ -98,14 +109,38 @@ struct PaletteListView: View {
         }
     }
 
-    #if os(macOS)
-    private func importCLR(_ urls: [URL]) -> Bool {
-        guard let url = urls.first(where: { $0.pathExtension.lowercased() == "clr" }),
-              let colors = [PaletteColor](clrFile: url, colorSpace: .okLch), !colors.isEmpty else { return false }
-        create(.plain(name: url.deletingPathExtension().lastPathComponent, colors: colors))
+    /// Imports a dropped `.gpl` (any platform) or `.clr` (macOS) file. Returns whether anything was imported.
+    private func importFiles(_ urls: [URL]) -> Bool {
+        var imported = false
+        for url in urls {
+            switch url.pathExtension.lowercased() {
+            case "gpl":
+                imported = importGPL(from: url) || imported
+            #if os(macOS)
+            case "clr":
+                if let colors = [PaletteColor](clrFile: url, colorSpace: .okLch), !colors.isEmpty {
+                    create(.plain(name: url.deletingPathExtension().lastPathComponent, colors: colors))
+                    imported = true
+                }
+            #endif
+            default:
+                break
+            }
+        }
+        return imported
+    }
+
+    @discardableResult
+    private func importGPL(from url: URL) -> Bool {
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+
+        guard let text = try? String(contentsOf: url, encoding: .utf8),
+              let palette = GIMPPalette(gpl: text, colorSpace: .okLch), !palette.colors.isEmpty else { return false }
+        let name = palette.name ?? url.deletingPathExtension().lastPathComponent
+        create(.plain(name: name, colors: palette.colors))
         return true
     }
-    #endif
 }
 
 private struct PaletteRow: View {
