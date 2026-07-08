@@ -20,7 +20,6 @@ struct PaletteEditorView: View {
     @State private var showingDiscardConfirmation = false
 
     @State private var generator = PaletteGenerator()
-    @State private var convertCSSToP3 = false
     @State private var paletteText = ""
     @State private var showingInspector = true
     @State private var selectedDetent: PresentationDetent = .medium
@@ -43,7 +42,6 @@ struct PaletteEditorView: View {
     private var display: some View {
         DisplayView(
             generator: generator,
-            convertCSSToP3: $convertCSSToP3,
             paletteColors: $palette.colors,
             paletteText: $paletteText,
             onManualEdit: markCustomized)
@@ -66,7 +64,12 @@ struct PaletteEditorView: View {
                 #endif
                 ToolbarItem(placement: .primaryAction) {
                     Menu("Export", systemImage: "square.and.arrow.up") {
-                        ShareLink("Share CSS", item: paletteText)
+                        Menu("Share CSS", systemImage: "curlybraces") {
+                            ForEach(ColorRepresentation.allCases) { representation in
+                                ShareLink(representation.name,
+                                          item: PaletteColor.text(palette.colors, representation: representation, colorSpace: generator.parameters.colorSpace))
+                            }
+                        }
                         #if os(macOS)
                         Button("Save as Color List…", systemImage: "swatchpalette") {
                             exportColorList()
@@ -157,14 +160,14 @@ struct PaletteEditorView: View {
         if let parameters = palette.parameters {
             generator.parameters = parameters
         }
-        paletteText = PaletteColor.cssText(palette.colors, colorSpace: generator.parameters.colorSpace, convertedToP3: convertCSSToP3)
+        paletteText = PaletteColor.cssText(palette.colors, colorSpace: generator.parameters.colorSpace, convertedToP3: false)
     }
 
     private func regenerate(_ parameters: PaletteGenerator.Parameters) {
         guard palette.canEditParameters else { return }
 
         let colors = generator.generate()
-        paletteText = PaletteColor.cssText(colors, colorSpace: parameters.colorSpace, convertedToP3: convertCSSToP3)
+        paletteText = PaletteColor.cssText(colors, colorSpace: parameters.colorSpace, convertedToP3: false)
 
         // Skip no-op writes (e.g. seeding the generator on appear) so the modified date doesn't churn.
         guard palette.parameters != parameters || palette.colors != colors else { return }
@@ -186,7 +189,7 @@ struct PaletteEditorView: View {
         palette.isCustomized = false
         let colors = generator.generate()
         palette.colors = colors
-        paletteText = PaletteColor.cssText(colors, colorSpace: generator.parameters.colorSpace, convertedToP3: convertCSSToP3)
+        paletteText = PaletteColor.cssText(colors, colorSpace: generator.parameters.colorSpace, convertedToP3: false)
         palette.dateModified = .now
     }
 }

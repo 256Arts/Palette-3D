@@ -24,24 +24,19 @@ struct ColorDetailsView: View {
     private struct Metric: Identifiable {
         let name: String
         let value: String
+        /// A message explaining that this representation had to clamp the color, or `nil` if it's exact.
+        var warning: String? = nil
         var id: String { name }
     }
 
-    /// The same color expressed in every metric. Fractions are re-derived from the realized P3 value so each
-    /// row is a true conversion, not the same fractions reinterpreted in a different space's scale.
+    /// The same color expressed in every representation. CSS color-space rows are re-derived from the realized
+    /// P3 value so each is a true conversion, not the same fractions reinterpreted in a different space's scale.
     private var metrics: [Metric] {
-        let p3 = color.p3(colorSpace: colorSpace)
-        func css(_ space: ColorSpace) -> String {
-            PaletteColor(p3, colorSpace: space).cssString(colorSpace: space, convertedToP3: false)
+        ColorRepresentation.allCases.map { representation in
+            Metric(name: representation.name,
+                   value: color.string(representation, colorSpace: colorSpace),
+                   warning: color.gamutWarning(representation, colorSpace: colorSpace))
         }
-        return [
-            Metric(name: "Oklch", value: css(.okLch)),
-            Metric(name: "Oklab", value: css(.okLab)),
-            Metric(name: "Lch", value: css(.lch)),
-            Metric(name: "Lab", value: css(.lab)),
-            Metric(name: "Display P3", value: color.cssString(colorSpace: colorSpace, convertedToP3: true)),
-            Metric(name: "Hex", value: color.hexString(colorSpace: colorSpace)),
-        ]
     }
 
     private var nameBinding: Binding<String> {
@@ -123,10 +118,18 @@ struct ColorDetailsView: View {
             Text(metric.name)
                 .foregroundStyle(.secondary)
                 .frame(width: 90, alignment: .leading)
-            Text(metric.value)
-                .monospaced()
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 6) {
+                Text(metric.value)
+                    .monospaced()
+                    .textSelection(.enabled)
+                if let warning = metric.warning {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .help(warning)
+                        .accessibilityLabel(warning)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Button("Copy", systemImage: "doc.on.doc") { copy(metric.value) }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)

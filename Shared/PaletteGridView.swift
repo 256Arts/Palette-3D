@@ -8,6 +8,31 @@
 
 import SwiftUI
 
+/// A gamut to highlight against. Colors that fall outside the selected gamut are clamped when
+/// exported, so the grid flags them with a warning triangle.
+enum GamutFilter: String, CaseIterable, Identifiable {
+    case none, p3, srgb
+
+    var id: Self { self }
+
+    var name: String {
+        switch self {
+        case .none: "All"
+        case .p3: "P3 Representable"
+        case .srgb: "RGB Representable"
+        }
+    }
+
+    /// Whether the given color is clamped in this gamut. `.none` never flags a color.
+    func clamps(_ color: PaletteColor, colorSpace: ColorSpace) -> Bool {
+        switch self {
+        case .none: false
+        case .p3: color.isOutsideP3Gamut(colorSpace: colorSpace)
+        case .srgb: color.isOutsideSRGBGamut(colorSpace: colorSpace)
+        }
+    }
+}
+
 struct PaletteGridView: View {
 
     let colors: [PaletteColor]
@@ -16,8 +41,10 @@ struct PaletteGridView: View {
     var onAdd: () -> Void
     var onDropColors: ([Color]) -> Void
     var onDelete: (Int) -> Void
+    var onReorder: (ReorderDifference<PaletteColor.ID, ReorderableSingleCollectionIdentifier>) -> Void
 
     @State private var cellSize: CGFloat = 64
+    @State private var gamutFilter: GamutFilter = .none
     @GestureState private var pinch: CGFloat = 1
 
     private static let minSize: CGFloat = 44
@@ -29,17 +56,42 @@ struct PaletteGridView: View {
     private var showsName: Bool { effectiveSize >= 96 }
     private var showsHex: Bool { effectiveSize >= 148 }
 
+    /// Each color paired with the current space, so swatches can be dragged (reordered / exported).
+    private var items: [DraggableColor] {
+        colors.map { DraggableColor(color: $0, colorSpace: colorSpace) }
+    }
+
     var body: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: effectiveSize, maximum: effectiveSize * 1.4), spacing: 12)], spacing: 12) {
-                ForEach(colors.indices, id: \.self) { index in
-                    swatch(index)
+                ForEach(items) { item in
+                    swatch(item.color)
                 }
+                .reorderable()
                 addButton
+            }
+            .reorderContainer(for: DraggableColor.self) { difference in
+                onReorder(difference)
+            }
+            .dragContainer(for: DraggableColor.self) { id in
+                items.first { $0.id == id }.map { [$0] } ?? []
             }
             .scenePadding()
             .animation(.snappy, value: showsName)
             .animation(.snappy, value: showsHex)
+        }
+        .toolbar {
+            ToolbarItem {
+                Menu {
+                    Picker("Gamut Filter", selection: $gamutFilter) {
+                        ForEach(GamutFilter.allCases) { filter in
+                            Text(filter.name).tag(filter)
+                        }
+                    }
+                } label: {
+                    Label("Gamut Filter", systemImage: gamutFilter == .none ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill")
+                }
+            }
         }
         .dropDestination(for: Color.self) { colors, _ in
             onDropColors(colors)
@@ -48,8 +100,8 @@ struct PaletteGridView: View {
         .simultaneousGesture(zoom)
     }
 
-    private func swatch(_ index: Int) -> some View {
-        let color = colors[index]
+    private func swatch(_ color: PaletteColor) -> some View {
+        let index = colors.firstIndex(of: color) ?? 0
         return Button {
             onSelect(index)
         } label: {
@@ -60,6 +112,15 @@ struct PaletteGridView: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: effectiveSize * 0.18, style: .continuous)
                             .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+                    }
+                    .overlay {
+                        if gamutFilter.clamps(color, colorSpace: colorSpace) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: effectiveSize * 0.4))
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.black, .yellow)
+                                .shadow(radius: 2)
+                        }
                     }
                 if showsName {
                     Text(color.name ?? "Color \(index + 1)")
@@ -76,7 +137,7 @@ struct PaletteGridView: View {
             }
         }
         .buttonStyle(.plain)
-        .draggable(color.color(colorSpace: colorSpace))
+        .contentShape(.dragPreview, RoundedRectangle(cornerRadius: effectiveSize * 0.18, style: .continuous))
         .contextMenu {
             Button("Delete", systemImage: "trash", role: .destructive) { onDelete(index) }
         }
@@ -115,5 +176,6 @@ struct PaletteGridView: View {
         onSelect: { _ in },
         onAdd: {},
         onDropColors: { _ in },
-        onDelete: { _ in })
+        onDelete: { _ in },
+        onReorder: { _ in })
 }

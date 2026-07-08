@@ -22,7 +22,6 @@ struct DisplayView: View {
     }
     
     @Bindable var generator: PaletteGenerator
-    @Binding var convertCSSToP3: Bool
     @Binding var paletteColors: [PaletteColor]
     @Binding var paletteText: String
 
@@ -74,6 +73,11 @@ struct DisplayView: View {
         onManualEdit()
     }
 
+    private func reorderColors(_ difference: ReorderDifference<PaletteColor.ID, ReorderableSingleCollectionIdentifier>) {
+        difference.apply(to: &paletteColors)
+        onManualEdit()
+    }
+
     var body: some View {
         VStack {
             switch displayMode {
@@ -84,7 +88,8 @@ struct DisplayView: View {
                     onSelect: { editingColorIndex = $0 },
                     onAdd: { showingAddColor = true },
                     onDropColors: addColors,
-                    onDelete: { deleteColor(at: $0) })
+                    onDelete: { deleteColor(at: $0) },
+                    onReorder: reorderColors)
             case .sphere:
                 PaletteSphereView(
                     colors: paletteColors,
@@ -95,12 +100,7 @@ struct DisplayView: View {
                 TextEditor(text: $paletteText)
                     .autocorrectionDisabled()
                     .focused($textIsFocused)
-                    #if os(macOS)
-                    .overlay(alignment: .topTrailing) {
-                        Toggle("P3", isOn: $convertCSSToP3)
-                            .padding()
-                    }
-                    #else
+                    #if !os(macOS)
                     .textInputAutocapitalization(.never)
                     #endif
                     .onChange(of: paletteText) { _, newValue in
@@ -135,17 +135,9 @@ struct DisplayView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(maxWidth: 140)
             }
+            .sharedBackgroundVisibility(.hidden)
             
-            #if !os(macOS)
-            if displayMode == .text {
-                // The P3 toggle is the primary control in text mode; pin it so it never overflows.
-                ToolbarItem(placement: .topBarPinnedTrailing) {
-                    Toggle("P3", isOn: $convertCSSToP3)
-                }
-            }
-
             #if os(iOS)
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -155,16 +147,12 @@ struct DisplayView: View {
                 }
             }
             #endif
-            #endif
         }
         .onChange(of: paletteColors) {
             // Keep the CSS text in sync with grid/sphere edits, but don't fight the user while they type.
             if !textIsFocused {
-                paletteText = PaletteColor.cssText(paletteColors, colorSpace: generator.parameters.colorSpace, convertedToP3: convertCSSToP3)
+                paletteText = PaletteColor.cssText(paletteColors, colorSpace: generator.parameters.colorSpace, convertedToP3: false)
             }
-        }
-        .onChange(of: convertCSSToP3) { _, newValue in
-            paletteText = PaletteColor.cssText(paletteColors, colorSpace: generator.parameters.colorSpace, convertedToP3: newValue)
         }
         .alert("Text Input Not Supported", isPresented: $showingTextInputWarning) {
             Button("OK") { }
@@ -199,6 +187,6 @@ struct DisplayView: View {
 
 #Preview {
     NavigationStack {
-        DisplayView(generator: PaletteGenerator(), convertCSSToP3: .constant(false), paletteColors: .constant([]), paletteText: .constant(""))
+        DisplayView(generator: PaletteGenerator(), paletteColors: .constant([]), paletteText: .constant(""))
     }
 }
