@@ -77,6 +77,10 @@ struct PaletteEditorView: View {
                                   preview: SharePreview("\(palette.name).gpl")) {
                             Label("GIMP Palette File", systemImage: "swatchpalette")
                         }
+                        ShareLink(item: PaletteImageExport(name: palette.name, colors: palette.colors, colorSpace: generator.parameters.colorSpace),
+                                  preview: SharePreview("\(palette.name).png")) {
+                            Label("Palette Image", systemImage: "photo")
+                        }
                         #if os(macOS)
                         Button("Save as Color List…", systemImage: "swatchpalette") {
                             exportColorList()

@@ -2,13 +2,28 @@
 //  PaletteImage.swift
 //  Palette 3D
 //
-//  Bridges palettes from palette images — Sprite Pencil's interchange format: a 1px-tall
+//  Bridges palettes to/from palette images — Sprite Pencil's interchange format: a 1px-tall
 //  image encoding one fully-opaque color per pixel.
 //
 
 import CoreGraphics
 import Foundation
 import ImageIO
+import SwiftUI
+import UniformTypeIdentifiers
+
+/// A failure encoding a palette to a palette image.
+enum PaletteImageError: LocalizedError {
+    case empty
+    case encodingFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .empty: "The palette has no colors to export."
+        case .encodingFailed: "Could not encode the palette image."
+        }
+    }
+}
 
 extension Array where Element == PaletteColor {
 
@@ -51,5 +66,65 @@ extension Array where Element == PaletteColor {
             colors.append(color)
         }
         self = colors
+    }
+
+    /// Renders the palette as a 1px-tall image, one fully-opaque sRGB pixel per color — the
+    /// palette-image interchange format, re-importable by `init?(paletteImage:colorSpace:)`.
+    func paletteImage(colorSpace: ColorSpace) -> CGImage? {
+        guard !isEmpty else { return nil }
+
+        var pixels = [UInt8](repeating: 0, count: count * 4)
+        for (x, color) in enumerated() {
+            let (r, g, b) = color.srgb8Bit(colorSpace: colorSpace) // Already gamut-clamped to 0–255.
+            let i = x * 4
+            pixels[i] = UInt8(r)
+            pixels[i + 1] = UInt8(g)
+            pixels[i + 2] = UInt8(b)
+            pixels[i + 3] = 255
+        }
+
+        return CGColorSpace(name: CGColorSpace.sRGB).flatMap { srgb in
+            pixels.withUnsafeMutableBytes { raw in
+                CGContext(
+                    data: raw.baseAddress,
+                    width: count,
+                    height: 1,
+                    bitsPerComponent: 8,
+                    bytesPerRow: count * 4,
+                    space: srgb,
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)?
+                    .makeImage()
+            }
+        }
+    }
+
+    /// Encodes the palette as PNG palette-image data. Throws if the palette is empty or can't be encoded.
+    func paletteImagePNGData(colorSpace: ColorSpace) throws -> Data {
+        guard let image = paletteImage(colorSpace: colorSpace) else { throw PaletteImageError.empty }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
+            throw PaletteImageError.encodingFailed
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { throw PaletteImageError.encodingFailed }
+        return data as Data
+    }
+}
+
+/// A value-type snapshot of a palette for sharing out as a 1px-tall PNG palette image.
+/// Cross-platform and re-importable by Palette 3D and Sprite Pencil.
+struct PaletteImageExport: Transferable {
+
+    let name: String
+    let colors: [PaletteColor]
+    let colorSpace: ColorSpace
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .png) { export in
+            let safeName = export.name.replacingOccurrences(of: "/", with: "-")
+            let url = URL.temporaryDirectory.appending(component: "\(safeName).png")
+            try export.colors.paletteImagePNGData(colorSpace: export.colorSpace).write(to: url)
+            return SentTransferredFile(url)
+        }
     }
 }

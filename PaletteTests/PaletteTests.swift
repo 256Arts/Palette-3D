@@ -182,4 +182,31 @@ struct PaletteTests {
         #expect([PaletteColor](paletteImage: clear, colorSpace: .okLch) == nil)
     }
 
+    @Test func testPaletteImageRoundTrip() throws {
+        let colors = [
+            PaletteColor(sRGB8BitRed: 18, green: 52, blue: 86, colorSpace: .okLch),
+            PaletteColor(sRGB8BitRed: 200, green: 100, blue: 50, colorSpace: .okLch),
+            PaletteColor(sRGB8BitRed: 0, green: 0, blue: 0, colorSpace: .okLch)
+        ].compactMap { $0 }
+        #expect(colors.count == 3)
+
+        // The rendered image is exactly one opaque pixel per color, 1px tall.
+        let image = try #require(colors.paletteImage(colorSpace: .okLch))
+        #expect(image.width == 3)
+        #expect(image.height == 1)
+
+        // Encoding to PNG and re-decoding reproduces the sRGB values.
+        let data = try colors.paletteImagePNGData(colorSpace: .okLch)
+        let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+        let decoded = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        let reparsed = try #require([PaletteColor](paletteImage: decoded, colorSpace: .okLch))
+        #expect(reparsed.count == 3)
+        for (original, parsed) in zip(colors, reparsed) {
+            #expect(original.srgb8Bit(colorSpace: .okLch) == parsed.srgb8Bit(colorSpace: .okLch))
+        }
+
+        // An empty palette has no image to export.
+        #expect([PaletteColor]().paletteImage(colorSpace: .okLch) == nil)
+    }
+
 }
