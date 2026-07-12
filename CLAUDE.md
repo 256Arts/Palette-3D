@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Palette 3D is a multiplatform SwiftUI app (iOS, macOS, visionOS) that procedurally generates color palettes and visualizes them in 3D. Colors are positioned inside a sphere whose axes are perceptual color dimensions (lightness, chroma, hue).
+Palette 3D is a multiplatform SwiftUI app (iOS, macOS, visionOS) that procedurally generates color palettes and visualizes them in 3D. Colors are positioned inside a sphere whose axes are perceptual color dimensions (lightness, chroma, hue). Palettes are saved to a SwiftData library, and can also be imported from and exported to standard formats (.gpl, .clr, palette images, lospec.com).
 
 ## Build & Test
 
@@ -29,23 +29,42 @@ Note: destinations/platforms are intentionally not pinned here — choose a curr
 
 ## Architecture
 
-The app has two layers: an abstract palette model (resolution-independent fractions) and per-color-space realization (actual displayable/CSS colors). Keeping these separate is the core design idea.
+The app has two layers: an abstract palette model (resolution-independent fractions) and per-color-space realization (actual displayable/CSS colors). Keeping these separate is the core design idea. On top sits a SwiftData palette library.
 
-**Generation pipeline** (`PaletteGenerator` → `[PaletteColor]` → views):
-- `PaletteGenerator` (`@Observable`) holds all palette parameters and `generate()` produces the colors. It works purely in **normalized fractions** (lightness, chroma, hue) and is unaware of any concrete color space. It models the palette as a sphere: lightness is the vertical axis, and each lightness layer is a disc whose radius (`sqrt(1 - (lightness*2-1)^2)`) shrinks toward the poles; chroma is radial distance, hue is the angle around the disc.
-- `PaletteColor` is one color as `lightnessFraction` / `chromaFraction` / `hueAngle`. It is **color-space agnostic** until `color(colorSpace:)` or `cssString(colorSpace:convertedToP3:)` is called — only then are fractions mapped to absolute values (e.g. `chromaFraction * maxChromaP3` for Oklch) and converted via ChromaKit. The `visualizedX/Y/Z` properties map a color to 3D sphere coordinates for the RealityKit view.
+**Palette library** (`Shared/Model/Palette.swift`):
+- `Palette` is a SwiftData `@Model`: `name`, optional `parameters` (a `PaletteGenerator.Parameters`), `colors`, `isCustomized`, `dateModified`. A **perfect palette** keeps its generator parameters (created via `Palette.perfect(...)`); a **plain palette** is just a color list with `parameters == nil` (created via `Palette.plain(...)`, e.g. imports).
+- Once the user manually edits a color, `isCustomized` locks generation (`canEditParameters` becomes false) so parameter changes can't overwrite their work. Generation is deterministic, so "Discard Manual Edits" exactly reproduces the perfect palette and unlocks the parameters again.
+- `Palette3DApp` creates one shared `ModelContainer` used by every window (including the visionOS volume).
 
-**State flow:** `Palette3DApp` owns the single source of truth (`generator`, `paletteColors`, `paletteText`, `convertCSSToP3`) and passes them down. `ParametersView` edits `generator` and calls `regenerate()` on every parameter change, which repopulates both `paletteColors` and `paletteText`. `DisplayView` renders the result.
+**Generation pipeline** (`PaletteGenerator` → `[PaletteColor]`):
+- `PaletteGenerator` (`@Observable`) wraps a `Parameters` struct (Codable/Equatable — this is what `Palette` persists) and `generate()` produces the colors. It works purely in **normalized fractions** (lightness, chroma, hue) and is unaware of any concrete color space. It models the palette as a sphere: lightness is the vertical axis, and each lightness layer is a disc whose radius (`sqrt(1 - (lightness*2-1)^2)`) shrinks toward the poles; chroma is radial distance, hue is the angle around the disc.
+- `PaletteColor` is one color as `lightnessFraction` / `chromaFraction` / `hueAngle` plus an optional user-facing `name`. It is **color-space agnostic** until realized — `color(colorSpace:)`, `cssString(...)`, `hexString(...)`, etc. map fractions to absolute values (e.g. `chromaFraction * maxChromaP3` for Oklch) and convert via ChromaKit. It also parses inbound colors (`init(css:)`, `init(hex:colorSpace:)`, `init(sRGB8BitRed:...)`, `init(_ p3:colorSpace:)`). The `visualizedX/Y/Z` properties map a color to 3D sphere coordinates for the RealityKit view.
+- `ColorRepresentation` + `Gamut` (in `PaletteColor.swift`) enumerate the text formats a color can be expressed in (CSS notations, RGB/Hex/HSL/HSB/HWB, SwiftUI/UIKit/AppKit/Java/Android snippets), grouped by gamut with clamping detection — used by the color detail rows and the export menu.
 
-**DisplayView** has three display modes:
-- `sphere` — RealityKit `RealityView` placing a sphere entity per color at its visualized 3D position (uses `.orbit` camera controls except on visionOS). Rebuilds entities only when `sphereNeedsRefresh` is set.
-- `grid` — a `LazyVGrid` of color swatches.
-- `text` — a `TextEditor` of CSS color strings. This mode is **bidirectional**: editing text re-parses colors via `PaletteColor(css:)`. Only `lch()` and `oklch()` are parseable as input; `lab`, `oklab`, and P3 are output-only (an alert warns the user).
+**Navigation & state flow:** the root view is `PaletteListView` (`Shared/Views/Library/`), a `NavigationStack` over a `@Query` of saved palettes, sorted by `dateModified`. Selecting one pushes `PaletteEditorView`, which owns a transient `PaletteGenerator` + `paletteText` (seeded from the palette in `load()`). `ParametersView` edits the generator (shown in an `.inspector`, or side-by-side on visionOS, only while `canEditParameters`); each parameter change triggers `regenerate(...)`, which writes `parameters`/`colors` back to the model. Any manual color edit flows through `onManualEdit` → `markCustomized()`.
 
-**CSS / P3:** `cssString(...)` emits `lch()`/`lab()`/`oklch()`/`oklab()` functional notation, or `color(display-p3 ...)` when `convertCSSToP3` is on (gamut-mapped through ChromaKit's `.p3`).
+**Import/Export** (`Shared/ImportExport/`) — all imports land as plain palettes, realized into the current color space on the way in:
+- `PaletteGPL.swift` — GIMP palette (`.gpl`) text format, cross-platform. `GIMPPalette` parses; `GIMPPaletteExport` is a `Transferable` for ShareLink.
+- `PaletteColorList.swift` (macOS only) — `NSColorList` (`.clr`) read/write, plus `PaletteExport`, the `Transferable` used to drag a palette row out to Finder.
+- `PaletteImage.swift` — Sprite Pencil-style palette images: a 1px-tall image, one fully-opaque color per pixel.
+- `PaletteLospec.swift` — handles lospec.com's `lospec-palette://<slug>` URL scheme (registered in `Palette-3D-Info.plist`) by fetching the palette JSON from the site's API.
+- `PaletteListView` funnels all of these: import menu, drop onto the list (macOS), and `onOpenURL`.
+
+**Analysis** (`Shared/Views/Analysis/`): `PaletteAnalysisView` is a read-only modal with pairwise ΔE₀₀ / WCAG contrast statistics and coverage, computed by `ColorMetrics` (`Shared/Model/`). `DuoView` compares two colors via CSS `color-mix()`/gradients in multiple interpolation spaces, resolved by `WebColorRenderer` (an offscreen `WKWebView` that does only the color math; results are drawn natively).
+
+## DisplayView
+
+`DisplayView` (`Shared/Views/Display/`) renders and edits one palette's colors. It takes the generator, a `Binding` to the palette's colors, the CSS text binding, and an `onManualEdit` callback. Three display modes:
+- `sphere` — `PaletteSphereView`, a RealityKit `RealityView` placing a sphere entity per color at its visualized 3D position (`.orbit` camera controls except on visionOS). Tapping a sphere opens that color's details. The same view backs the visionOS `.volumetric` window (`VolumetricDisplayView`, which looks the palette up live from SwiftData by `PersistentIdentifier`).
+- `grid` — `PaletteGridView`, a pinch-zoomable `LazyVGrid` of swatches (larger sizes reveal name, then hex). Supports drag-to-reorder (iOS 27 `reorderable()`; applied via `ReorderDifference.apply(to:)` in `Shared/Utilities/`), dragging swatches out as colors (`DraggableColor`), dropping colors in, context-menu delete, an add button, and a gamut filter that flags colors clamped on the current display.
+- `text` — a `TextEditor` of CSS color strings. This mode is **bidirectional**: editing text re-parses colors via `PaletteColor(css:)`. Only `lch()` and `oklch()` are parseable as input; `lab`, `oklab`, and P3 are output-only (an alert warns the user). Grid/sphere edits sync back into the text unless it's focused.
+
+Tapping a color opens `ColorDetailsView` (`Shared/Views/ColorDetail/`) — preview, editable name, color picker, and the color's value in every `ColorRepresentation` with copy. `AddColorView` composes a new color from a picker, a dropped color, or an image/photo sampled with `ImageColorPickerView`'s eyedropper loupe. Every mutation path calls `onManualEdit`, so editing any color locks a perfect palette's parameters.
+
+**CSS / P3:** `cssString(...)` emits `lch()`/`lab()`/`oklch()`/`oklab()` functional notation, or `color(display-p3 ...)` when converting to P3 (gamut-mapped through ChromaKit's `.p3`).
 
 ## Platform structure
 
 - `Shared/` — all app code; cross-platform via `#if os(...)` / `#if canImport(...)` checks. `SystemColor` is typealiased to `NSColor`/`UIColor`.
 - `macOS/` — macOS entitlements.
-- visionOS uses a separate scene layout: parameters in a standard window plus a `.volumetric` window for the 3D display, instead of the inspector layout used on iOS/macOS.
+- visionOS diverges in the editor: parameters sit beside the display (no `.inspector` there), and an "Open in Volume" toolbar button opens the palette's sphere in a `.volumetric` window.
