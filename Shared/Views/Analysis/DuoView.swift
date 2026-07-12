@@ -4,12 +4,20 @@
 //
 //  Pick two colors and a mix amount, then compare how CSS blends them: a `color-mix()` swatch
 //  followed by a gradient between the two colors in each interpolation color space.
-//  Rendered via WebKit because SwiftUI has no `color-mix()` or per-space gradient interpolation.
+//  A background ``WebColorRenderer`` resolves the CSS colors (SwiftUI has no `color-mix()` or
+//  per-space interpolation); the results are drawn natively as `Color` swatches and gradients.
 //
 
 import SwiftUI
 import Foundation
 import ChromaKit
+
+/// One interpolation space's resolved bar: a single swatch color in mix mode, or gradient stops.
+private struct InterpolationBar: Identifiable {
+    let space: String
+    let colors: [Color]
+    var id: String { space }
+}
 
 struct DuoView: View {
 
@@ -29,8 +37,15 @@ struct DuoView: View {
     @State private var mix: Double = 50
     @State private var mode: Mode = .mix
 
+    /// Resolves `color-mix()` / gradient stops in the background, off the SwiftUI view tree.
+    @State private var renderer = WebColorRenderer()
+    /// The natively-drawable bars for the current inputs, one per interpolation space.
+    @State private var bars: [InterpolationBar] = []
+
     /// The CSS interpolation spaces used for the mix/gradient rows, perceptual-first.
     private static let interpolationSpaces = ["oklch", "oklab", "lch", "lab", "hsl", "hwb", "srgb", "srgb-linear", "xyz"]
+    /// Stops sampled per gradient bar — enough for a smooth curve through the perceptual path.
+    private static let gradientSampleCount = 24
 
     var body: some View {
         NavigationStack {
@@ -60,12 +75,12 @@ struct DuoView: View {
                     MetricsView(first: firstColor, second: secondColor, deltaE: metrics.deltaE, contrast: metrics.contrast)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    HTMLView(html: html)
-                        .clipShape(.rect(cornerRadius: 16))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    interpolationView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
             }
             .padding()
+            .task(id: inputKey) { await updateBars() }
             .navigationTitle("Color Duo")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -108,50 +123,82 @@ struct DuoView: View {
         return "color(display-p3 \(channel(p3.r)) \(channel(p3.g)) \(channel(p3.b)))"
     }
 
-    private var html: String {
-        let first = cssColor(firstColor)
-        let second = cssColor(secondColor)
-        let rows = Self.interpolationSpaces.map { space in
-            let background = switch mode {
-            case .stats:
-                ""
-            case .mix:
-                "color-mix(in \(space), \(first) \(percent)%, \(second))"
-            case .gradient:
-                "linear-gradient(to right in \(space), \(first), \(second))"
+    /// Natively-drawn interpolation rows: a monospaced space label beside a swatch or gradient bar.
+    private var interpolationView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(heading)
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+            ForEach(bars) { bar in
+                HStack(spacing: 12) {
+                    Text(bar.space)
+                        .font(.system(.footnote, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 74, alignment: .leading)
+                    barShape(bar.colors)
+                }
             }
-            return "<div class=\"row\"><span class=\"label\">\(space)</span><div class=\"bar\" style=\"background:\(background)\"></div></div>"
-        }.joined()
-        let heading = switch mode {
+        }
+    }
+
+    /// A single swatch (mix mode) or a left-to-right gradient (gradient mode) through the sampled stops.
+    private func barShape(_ colors: [Color]) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 8)
+        return Group {
+            if colors.count == 1 {
+                shape.fill(colors[0])
+            } else {
+                shape.fill(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing))
+            }
+        }
+        .frame(height: 34)
+        .overlay(shape.strokeBorder(.primary.opacity(0.12)))
+    }
+
+    private var heading: String {
+        switch mode {
         case .stats: ""
         case .mix: "color-mix() · \(percent)% / \(100 - percent)% by interpolation space"
         case .gradient: "Gradients by interpolation space"
         }
-        return """
-        <!doctype html>
-        <html>
-        <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-        <style>
-        :root { color-scheme: light dark; }
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 16px; background: canvas; color: canvastext;
-               font: 13px/1.3 -apple-system, system-ui, sans-serif; }
-        h2 { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-             color: color-mix(in srgb, canvastext, transparent 50%); margin: 0 0 8px 0; }
-        .row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-        .label { flex: 0 0 74px; font-family: ui-monospace, monospace;
-                 color: color-mix(in srgb, canvastext, transparent 35%); }
-        .bar { flex: 1; height: 34px; border-radius: 8px;
-               box-shadow: inset 0 0 0 1px color-mix(in srgb, canvastext, transparent 88%); }
-        </style>
-        </head>
-        <body>
-        <h2>\(heading)</h2>
-        \(rows)
-        </body>
-        </html>
-        """
+    }
+
+    /// A value that changes whenever the resolved bars need recomputing.
+    private var inputKey: String {
+        "\(cssColor(firstColor))|\(cssColor(secondColor))|\(percent)|\(mode.rawValue)"
+    }
+
+    /// Resolves every space's `color-mix()` (mix mode) or gradient stops in one batched web call.
+    private func updateBars() async {
+        guard mode != .stats else { return }
+        let first = cssColor(firstColor)
+        let second = cssColor(secondColor)
+        let perBar = mode == .mix ? 1 : Self.gradientSampleCount
+
+        let requests = Self.interpolationSpaces.flatMap { space -> [String] in
+            switch mode {
+            case .stats:
+                return []
+            case .mix:
+                return ["color-mix(in \(space), \(first) \(percent)%, \(second))"]
+            case .gradient:
+                // Sampling `color-mix(in S, second t%, first)` across t reproduces the gradient's path.
+                return (0..<Self.gradientSampleCount).map { step in
+                    let t = Double(step) / Double(Self.gradientSampleCount - 1)
+                    return "color-mix(in \(space), \(second) \(String(format: "%.2f", t * 100))%, \(first))"
+                }
+            }
+        }
+
+        let resolved = await renderer.resolve(requests)
+        guard resolved.count == requests.count else { return }
+
+        bars = Self.interpolationSpaces.enumerated().map { index, space in
+            let stops = resolved[(index * perBar)..<((index + 1) * perBar)]
+            return InterpolationBar(space: space, colors: stops.map { Color(.displayP3, red: $0.r, green: $0.g, blue: $0.b) })
+        }
     }
 }
 
