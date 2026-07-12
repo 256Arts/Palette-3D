@@ -8,6 +8,7 @@
 import Testing
 import SwiftData
 import SwiftUI
+import CoreGraphics
 
 @testable import Palette_3D
 
@@ -121,6 +122,64 @@ struct PaletteTests {
         for (original, parsed) in zip(colors, reparsed.colors) {
             #expect(original.srgb8Bit(colorSpace: .okLch) == parsed.srgb8Bit(colorSpace: .okLch))
         }
+    }
+
+    @Test func testHexParsing() throws {
+        let red = try #require(PaletteColor(hex: "ff0000", colorSpace: .okLch))
+        #expect(red.srgb8Bit(colorSpace: .okLch) == (255, 0, 0))
+
+        // A leading "#" is tolerated (Lospec's JSON omits it, but users paste both forms).
+        let navy = try #require(PaletteColor(hex: "#123456", colorSpace: .okLch))
+        #expect(navy.srgb8Bit(colorSpace: .okLch) == (18, 52, 86))
+
+        #expect(PaletteColor(hex: "fff", colorSpace: .okLch) == nil) // Shorthand not supported.
+        #expect(PaletteColor(hex: "gggggg", colorSpace: .okLch) == nil)
+    }
+
+    @Test func testLospecPalette() throws {
+        let json = #"{"name":"Test Palette","author":"Someone","colors":["ff0000","00ff00","0000ff"]}"#
+        let lospec = try JSONDecoder().decode(LospecPalette.self, from: Data(json.utf8))
+        #expect(lospec.name == "Test Palette")
+
+        let colors = lospec.paletteColors(colorSpace: .okLch)
+        #expect(colors.count == 3)
+        #expect(colors[2].srgb8Bit(colorSpace: .okLch) == (0, 0, 255))
+
+        #expect(LospecPalette.canHandle(URL(string: "lospec-palette://pico-8")!))
+        #expect(!LospecPalette.canHandle(URL(string: "https://lospec.com/palette-list/pico-8")!))
+    }
+
+    /// Builds an RGBA8 sRGB image from rows of pixel tuples, for palette-image parsing tests.
+    private func image(rows: [[(r: UInt8, g: UInt8, b: UInt8, a: UInt8)]]) throws -> CGImage {
+        let width = rows[0].count
+        var data = rows.flatMap { $0.flatMap { [$0.r, $0.g, $0.b, $0.a] } }
+        let context = try #require(CGContext(
+            data: &data,
+            width: width,
+            height: rows.count,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        return try #require(context.makeImage())
+    }
+
+    @Test func testPaletteImageParsing() throws {
+        // A valid 3x1 palette image parses in pixel order.
+        let valid = try image(rows: [[(255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255)]])
+        let colors = try #require([PaletteColor](paletteImage: valid, colorSpace: .okLch))
+        #expect(colors.count == 3)
+        #expect(colors[0].srgb8Bit(colorSpace: .okLch) == (255, 0, 0))
+        #expect(colors[1].srgb8Bit(colorSpace: .okLch) == (0, 255, 0))
+        #expect(colors[2].srgb8Bit(colorSpace: .okLch) == (0, 0, 255))
+
+        // Taller than 1px is rejected.
+        let tall = try image(rows: [[(255, 0, 0, 255)], [(0, 255, 0, 255)]])
+        #expect([PaletteColor](paletteImage: tall, colorSpace: .okLch) == nil)
+
+        // Clear pixels are rejected.
+        let clear = try image(rows: [[(255, 0, 0, 255), (0, 0, 0, 0)]])
+        #expect([PaletteColor](paletteImage: clear, colorSpace: .okLch) == nil)
     }
 
 }

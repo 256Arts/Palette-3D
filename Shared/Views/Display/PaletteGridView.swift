@@ -32,7 +32,7 @@ enum GamutFilter: String, CaseIterable, Identifiable {
     /// `.p3` when the display gamut is unknown (all modern Apple displays are at least P3).
     static var deviceDefault: GamutFilter {
         #if canImport(AppKit)
-        NSScreen.main?.canRepresent(.displayP3) == false ? .srgb : .p3
+        NSScreen.main?.canRepresent(.p3) == false ? .srgb : .p3
         #elseif canImport(UIKit)
         UITraitCollection.current.displayGamut == .SRGB ? .srgb : .p3
         #else
