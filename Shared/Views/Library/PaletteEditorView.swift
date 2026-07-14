@@ -1,3 +1,4 @@
+import PaletteKit
 import SwiftUI
 import UniformTypeIdentifiers
 #if os(macOS)
@@ -46,7 +47,10 @@ struct PaletteEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .navigationTitle($palette.name)
+            #if !os(visionOS)
+            // visionOS has no navigation subtitle; the count is carried by the grid there instead.
             .navigationSubtitle("^[\(palette.colors.count) Colors](inflect: true)")
+            #endif
             .toolbar {
                 #if os(visionOS)
                 ToolbarItem {
@@ -65,11 +69,11 @@ struct PaletteEditorView: View {
                                 }
                             }
                         }
-                        ShareLink(item: GIMPPaletteExport(name: palette.name, colors: palette.colors, colorSpace: generator.parameters.colorSpace),
+                        ShareLink(item: GIMPPaletteExport(palette: palette.snapshot(), colorSpace: generator.parameters.colorSpace),
                                   preview: SharePreview("\(palette.name).gpl")) {
                             Label("GIMP Palette File", systemImage: "swatchpalette")
                         }
-                        ShareLink(item: PaletteImageExport(name: palette.name, colors: palette.colors, colorSpace: generator.parameters.colorSpace),
+                        ShareLink(item: PaletteImageExport(palette: palette.snapshot(), colorSpace: generator.parameters.colorSpace),
                                   preview: SharePreview("\(palette.name).png")) {
                             Label("Palette Image", systemImage: "photo")
                         }
@@ -129,7 +133,7 @@ struct PaletteEditorView: View {
         }
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try palette.colors.writeCLR(to: url, named: palette.name, colorSpace: generator.parameters.colorSpace)
+            try palette.snapshot().writeCLR(to: url, colorSpace: generator.parameters.colorSpace)
         } catch {
             exportError = error.localizedDescription
         }

@@ -1,3 +1,4 @@
+import PaletteKit
 import SwiftUI
 import UniformTypeIdentifiers
 

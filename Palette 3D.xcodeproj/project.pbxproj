@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1B4230FB2C89558A001FD549 /* ChromaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1B4230FA2C89558A001FD549 /* ChromaKit */; };
+		1B4230FB2C89558A001FD549 /* PaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1B4230FA2C89558A001FD549 /* PaletteKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -23,7 +23,6 @@
 /* Begin PBXFileReference section */
 		1B4231002C896DAD001FD549 /* Palette 3DTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Palette 3DTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B42310F2C8BAFE9001FD549 /* Palette-3D-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Palette-3D-Info.plist"; sourceTree = "<group>"; };
-		1BB5DA342FFD5BE7007D405B /* ChromaKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = ChromaKit; path = /Volumes/Kingston/GitHub/ChromaKit; sourceTree = "<absolute>"; };
 		351A162728AA86900047AA76 /* Palette 3D.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Palette 3D.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -57,7 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1B4230FB2C89558A001FD549 /* ChromaKit in Frameworks */,
+				1B4230FB2C89558A001FD549 /* PaletteKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -67,7 +66,6 @@
 		351A161A28AA868F0047AA76 = {
 			isa = PBXGroup;
 			children = (
-				1BB5DA342FFD5BE7007D405B /* ChromaKit */,
 				1B42310F2C8BAFE9001FD549 /* Palette-3D-Info.plist */,
 				1B7DF6D22E240B720071B353 /* Shared */,
 				1B7DF6DB2E240B760071B353 /* macOS */,
@@ -127,6 +125,9 @@
 				1B7DF6D22E240B720071B353 /* Shared */,
 			);
 			name = "Palette 3D";
+			packageProductDependencies = (
+				1B4230FA2C89558A001FD549 /* PaletteKit */,
+			);
 			productName = "Palette (iOS)";
 			productReference = 351A162728AA86900047AA76 /* Palette 3D.app */;
 			productType = "com.apple.product-type.application";
@@ -159,7 +160,7 @@
 			);
 			mainGroup = 351A161A28AA868F0047AA76;
 			packageReferences = (
-				1B583F2B2C9146D00081385A /* XCRemoteSwiftPackageReference "ChromaKit" */,
+				1BB5DA352FFD5BE7007D405C /* XCLocalSwiftPackageReference "PaletteKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 351A162828AA86900047AA76 /* Products */;
@@ -502,30 +503,17 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		1B4230F92C89558A001FD549 /* XCRemoteSwiftPackageReference "ChromaKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/HarshilShah/ChromaKit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		1BB5DA352FFD5BE7007D405C /* XCLocalSwiftPackageReference "PaletteKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../../../../../Volumes/Kingston/GitHub/PaletteKit";
 		};
-		1B583F2B2C9146D00081385A /* XCRemoteSwiftPackageReference "ChromaKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/256Arts/ChromaKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		1B4230FA2C89558A001FD549 /* ChromaKit */ = {
+		1B4230FA2C89558A001FD549 /* PaletteKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 1B4230F92C89558A001FD549 /* XCRemoteSwiftPackageReference "ChromaKit" */;
-			productName = ChromaKit;
+			productName = PaletteKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -1,5 +1,5 @@
+import SwiftUI
 import WebKit
-import ChromaKit
 
 @MainActor
 final class WebColorRenderer: NSObject, WKNavigationDelegate {
@@ -17,8 +17,8 @@ final class WebColorRenderer: NSObject, WKNavigationDelegate {
         webView.loadHTMLString(Self.bootstrapHTML, baseURL: nil)
     }
 
-    /// Resolves each CSS color string to its Display-P3 value. Order matches the input; empty on failure.
-    func resolve(_ cssColors: [String]) async -> [P3] {
+    /// Resolves each CSS color string to a Display-P3 `Color`. Order matches the input; empty on failure.
+    func resolve(_ cssColors: [String]) async -> [Color] {
         guard !cssColors.isEmpty else { return [] }
         await waitUntilReady()
 
@@ -27,7 +27,7 @@ final class WebColorRenderer: NSObject, WKNavigationDelegate {
               let rows = result as? [[Double]], rows.count == cssColors.count
         else { return [] }
 
-        return rows.map { P3(r: $0[0], g: $0[1], b: $0[2]) }
+        return rows.map { Color(.displayP3, red: $0[0], green: $0[1], blue: $0[2]) }
     }
 
     private func waitUntilReady() async {

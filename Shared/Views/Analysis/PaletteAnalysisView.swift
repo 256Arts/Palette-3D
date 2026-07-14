@@ -1,5 +1,5 @@
+import PaletteKit
 import SwiftUI
-import ChromaKit
 
 struct PaletteAnalysisView: View {
 
@@ -171,10 +171,11 @@ struct PaletteAnalysis {
     }
 
     init(colors: [PaletteColor], colorSpace: ColorSpace) {
-        let labs = colors.map { ColorMetrics.labAndLuminance($0.p3(colorSpace: colorSpace)) }
-        let lightnesses = labs.map(\.lab.l)
-        let chromas = labs.map { hypot($0.lab.a, $0.lab.b) }
-        let hues = labs.map { atan2($0.lab.b, $0.lab.a) * 180 / .pi }.map { $0 < 0 ? $0 + 360 : $0 }
+        // Convert each color once; the pairwise loop below is O(n²) and must not re-convert.
+        let samples = colors.map { ColorMetrics.sample($0, colorSpace: colorSpace) }
+        let lightnesses = samples.map(\.lightness)
+        let chromas = samples.map(\.chroma)
+        let hues = samples.map(\.hueDegrees)
 
         outsideSRGB = colors.count { $0.isOutsideSRGBGamut(colorSpace: colorSpace) }
         outsideP3 = colors.count { $0.isOutsideP3Gamut(colorSpace: colorSpace) }
@@ -192,10 +193,10 @@ struct PaletteAnalysis {
         var similar: Pair?
         var different: Pair?
         var lowestContrast: Pair?
-        for i in labs.indices {
-            for j in (i + 1)..<labs.count {
-                let dE = ColorMetrics.deltaE2000(labs[i].lab, labs[j].lab)
-                let contrast = ColorMetrics.wcagContrast(labs[i].luminance, labs[j].luminance)
+        for i in samples.indices {
+            for j in (i + 1)..<samples.count {
+                let dE = ColorMetrics.deltaE2000(samples[i], samples[j])
+                let contrast = ColorMetrics.wcagContrast(samples[i], samples[j])
                 deltaEs.append(dE)
                 contrasts.append(contrast)
                 let pair = Pair(first: i, second: j, deltaE: dE, contrast: contrast)

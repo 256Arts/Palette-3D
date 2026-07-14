@@ -1,3 +1,4 @@
+import PaletteKit
 #if os(visionOS)
 import SwiftUI
 import SwiftData

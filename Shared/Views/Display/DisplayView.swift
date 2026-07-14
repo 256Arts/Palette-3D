@@ -1,3 +1,4 @@
+import PaletteKit
 import SwiftUI
 
 #if canImport(AppKit)
@@ -129,8 +130,11 @@ struct DisplayView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
             }
+            #if !os(visionOS)
+            // visionOS toolbar items have no shared background to hide.
             .sharedBackgroundVisibility(.hidden)
-            
+            #endif
+
             #if os(iOS)
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()

@@ -1,3 +1,4 @@
+import PaletteKit
 import SwiftUI
 #if canImport(UIKit)
 import UIKit

@@ -1,6 +1,6 @@
-import SwiftUI
 import Foundation
-import ChromaKit
+import PaletteKit
+import SwiftUI
 
 /// One interpolation space's resolved bar: a single swatch color in mix mode, or gradient stops.
 private struct InterpolationBar: Identifiable {
@@ -98,19 +98,15 @@ struct DuoView: View {
 
     /// Perceptual difference (CIEDE2000) and WCAG relative-luminance contrast between the two colors.
     private var metrics: (deltaE: Double, contrast: Double)? {
-        guard let p1 = P3(SystemColor(firstColor)), let p2 = P3(SystemColor(secondColor)) else { return nil }
-        let (lab1, y1) = ColorMetrics.labAndLuminance(p1)
-        let (lab2, y2) = ColorMetrics.labAndLuminance(p2)
-        let deltaE = ColorMetrics.deltaE2000(lab1, lab2)
-        let contrast = ColorMetrics.wcagContrast(y1, y2)
-        return (deltaE, contrast)
+        guard let first = ColorMetrics.sample(SystemColor(firstColor)),
+              let second = ColorMetrics.sample(SystemColor(secondColor)) else { return nil }
+        return (ColorMetrics.deltaE2000(first, second), ColorMetrics.wcagContrast(first, second))
     }
 
     /// A picked color as a CSS `color(display-p3 ...)` literal, preserving wide-gamut values.
     private func cssColor(_ color: Color) -> String {
-        guard let p3 = P3(SystemColor(color)) else { return "black" }
-        func channel(_ value: Double) -> String { String(format: "%.4f", max(0, min(1, value))) }
-        return "color(display-p3 \(channel(p3.r)) \(channel(p3.g)) \(channel(p3.b)))"
+        guard let picked = PaletteColor(SystemColor(color), colorSpace: .okLch) else { return "black" }
+        return picked.cssString(colorSpace: .okLch, convertedToP3: true)
     }
 
     /// Natively-drawn interpolation rows: a monospaced space label beside a swatch or gradient bar.
@@ -187,7 +183,7 @@ struct DuoView: View {
 
         bars = Self.interpolationSpaces.enumerated().map { index, space in
             let stops = resolved[(index * perBar)..<((index + 1) * perBar)]
-            return InterpolationBar(space: space, colors: stops.map { Color(.displayP3, red: $0.r, green: $0.g, blue: $0.b) })
+            return InterpolationBar(space: space, colors: Array(stops))
         }
     }
 }

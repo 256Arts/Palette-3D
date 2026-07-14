@@ -1,3 +1,4 @@
+import PaletteKit
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
@@ -22,10 +23,7 @@ struct PaletteListView: View {
                         PaletteRow(palette: palette)
                     }
                     #if os(macOS)
-                    .draggable(PaletteExport(
-                        name: palette.name,
-                        colors: palette.colors,
-                        colorSpace: palette.parameters?.colorSpace ?? .okLch))
+                    .draggable(PaletteColorListExport(palette: palette.snapshot(), colorSpace: palette.colorSpace))
                     #endif
                 }
                 .onDelete(perform: delete)
@@ -85,12 +83,12 @@ struct PaletteListView: View {
             }
             .fileImporter(isPresented: $showingGPLImporter, allowedContentTypes: [.gimpPalette]) { result in
                 if case let .success(url) = result {
-                    importGPL(from: url)
+                    importFiles([url])
                 }
             }
             .fileImporter(isPresented: $showingImageImporter, allowedContentTypes: [.image]) { result in
                 if case let .success(url) = result {
-                    importPaletteImage(from: url)
+                    importFiles([url])
                 }
             }
             .alert("Failed To Load Palette", isPresented: $showingImageImportError) {
@@ -120,59 +118,29 @@ struct PaletteListView: View {
         }
     }
 
-    /// Imports a dropped `.gpl` (any platform), `.clr` (macOS), or palette-image file.
-    /// Returns whether anything was imported.
+    /// Imports dropped or picked palette files — `.gpl`, `.clr` (macOS), or palette images. PaletteKit
+    /// picks the parser, so the app doesn't switch on the extension. Returns whether anything landed.
+    @discardableResult
     private func importFiles(_ urls: [URL]) -> Bool {
         var imported = false
         for url in urls {
-            switch url.pathExtension.lowercased() {
-            case "gpl":
-                imported = importGPL(from: url) || imported
-            #if os(macOS)
-            case "clr":
-                if let colors = [PaletteColor](clrFile: url, colorSpace: .okLch), !colors.isEmpty {
-                    create(.plain(name: url.deletingPathExtension().lastPathComponent, colors: colors))
-                    imported = true
-                }
-            #endif
-            default:
+            guard let palette = PaletteKit.Palette(file: url, colorSpace: .okLch), !palette.colors.isEmpty else {
+                // Only an image that failed can be a *malformed* palette; other files simply aren't palettes.
                 if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true {
-                    imported = importPaletteImage(from: url) || imported
+                    showingImageImportError = true
                 }
+                continue
             }
+            create(Palette(palette))
+            imported = true
         }
         return imported
     }
 
-    /// Imports a palette-image file (one color per pixel), alerting if it isn't a valid palette image.
-    @discardableResult
-    private func importPaletteImage(from url: URL) -> Bool {
-        guard let colors = [PaletteColor](paletteImageFile: url, colorSpace: .okLch), !colors.isEmpty else {
-            showingImageImportError = true
-            return false
-        }
-        create(.plain(name: url.deletingPathExtension().lastPathComponent, colors: colors))
-        return true
-    }
-
     /// Fetches and lands a palette from a `lospec-palette://<slug>` URL.
     private func importLospec(from url: URL) async {
-        guard let lospec = try? await LospecPalette.fetch(url) else { return }
-        let colors = lospec.paletteColors(colorSpace: .okLch)
-        guard !colors.isEmpty else { return }
-        create(.plain(name: lospec.name, colors: colors))
-    }
-
-    @discardableResult
-    private func importGPL(from url: URL) -> Bool {
-        let didAccess = url.startAccessingSecurityScopedResource()
-        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
-
-        guard let text = try? String(contentsOf: url, encoding: .utf8),
-              let palette = GIMPPalette(gpl: text, colorSpace: .okLch), !palette.colors.isEmpty else { return false }
-        let name = palette.name ?? url.deletingPathExtension().lastPathComponent
-        create(.plain(name: name, colors: palette.colors))
-        return true
+        guard let palette = try? await PaletteKit.Palette.lospec(url, colorSpace: .okLch), !palette.colors.isEmpty else { return }
+        create(Palette(palette))
     }
 }
 
@@ -181,7 +149,7 @@ private struct PaletteRow: View {
     let palette: Palette
 
     private var colorSpace: ColorSpace {
-        palette.parameters?.colorSpace ?? .okLch
+        palette.colorSpace
     }
 
     var body: some View {
