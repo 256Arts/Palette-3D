@@ -1,10 +1,3 @@
-//
-//  Palette.swift
-//  Palette 3D
-//
-//  A saved palette: either a "perfect" palette (keeps its generator parameters) or a plain color list.
-//
-
 import Foundation
 import SwiftData
 

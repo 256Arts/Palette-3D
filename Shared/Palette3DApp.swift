@@ -1,10 +1,3 @@
-//
-//  Palette3DApp.swift
-//  Palette 3D
-//
-//  Created by 256 Arts Developer on 2022-08-15.
-//
-
 import SwiftUI
 import SwiftData
 

@@ -1,10 +1,3 @@
-//
-//  ReorderDifference+Apply.swift
-//  Palette 3D
-//
-//  Applies a drag-to-reorder result (iOS 27's reorder API) to a plain collection.
-//
-
 import SwiftUI
 
 extension ReorderDifference where CollectionID == ReorderableSingleCollectionIdentifier {

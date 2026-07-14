@@ -1,12 +1,3 @@
-//
-//  PaletteListView.swift
-//  Palette 3D
-//
-//  Root list of saved palettes. Create perfect/empty palettes, or import a `.gpl` (GIMP palette,
-//  any platform), `.clr` (macOS), or palette-image file — via the import menu or by dropping onto
-//  the list. Also lands palettes arriving from lospec.com's `lospec-palette://` URL scheme.
-//
-
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers

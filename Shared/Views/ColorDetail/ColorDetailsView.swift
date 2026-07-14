@@ -1,11 +1,3 @@
-//
-//  ColorDetailsView.swift
-//  Palette 3D
-//
-//  A sheet for inspecting and editing a single palette color: a full-bleed preview, an editable
-//  name, a color picker, and the color's value across every supported metric (with copy).
-//
-
 import SwiftUI
 #if canImport(UIKit)
 import UIKit

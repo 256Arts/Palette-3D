@@ -1,12 +1,3 @@
-//
-//  PaletteGPL.swift
-//  Palette 3D
-//
-//  Bridges palettes to/from the GIMP palette format (`.gpl`): a plain-text, line-feed separated
-//  interchange of 8-bit sRGB colors. Being pure text, it works on every platform — unlike `.clr`,
-//  which is AppKit-only. See https://developer.gimp.org/core/standards/gpl/.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 

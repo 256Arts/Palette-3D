@@ -1,11 +1,3 @@
-//
-//  ColorMetrics.swift
-//  Palette 3D
-//
-//  Standard color-difference and contrast metrics, computed in CIELab / relative luminance.
-//  Shared by the duo comparison and the palette analysis.
-//
-
 import Foundation
 import ChromaKit
 

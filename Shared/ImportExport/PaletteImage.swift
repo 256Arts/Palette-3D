@@ -1,11 +1,3 @@
-//
-//  PaletteImage.swift
-//  Palette 3D
-//
-//  Bridges palettes to/from palette images — Sprite Pencil's interchange format: a 1px-tall
-//  image encoding one fully-opaque color per pixel.
-//
-
 import CoreGraphics
 import Foundation
 import ImageIO

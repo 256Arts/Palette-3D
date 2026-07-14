@@ -1,11 +1,3 @@
-//
-//  AddColorView.swift
-//  Palette 3D
-//
-//  A sheet for composing a new palette color: a full-bleed preview, a name, and a color picker.
-//  A color can also be dropped onto the preview or sampled from a photo/image file.
-//
-
 import SwiftUI
 import PhotosUI
 #if canImport(UIKit)

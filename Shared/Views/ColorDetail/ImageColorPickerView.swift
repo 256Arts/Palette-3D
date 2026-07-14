@@ -1,12 +1,3 @@
-//
-//  ImageColorPickerView.swift
-//  Palette 3D
-//
-//  An eyedropper sheet: displays an image and lets the user drag a magnifier loupe over it to
-//  sample a pixel color. Also houses the cross-platform image loading helpers and (on iOS) the
-//  camera capture controller used by AddColorView's image sources.
-//
-
 import SwiftUI
 import ImageIO
 import UniformTypeIdentifiers

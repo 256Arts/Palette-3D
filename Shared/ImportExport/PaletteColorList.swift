@@ -1,10 +1,3 @@
-//
-//  PaletteColorList.swift
-//  Palette 3D
-//
-//  Bridges palettes to/from NSColorList (`.clr`), the macOS color-list interchange format.
-//
-
 #if canImport(AppKit)
 import AppKit
 import SwiftUI

@@ -1,11 +1,3 @@
-//
-//  VolumetricDisplayView.swift
-//  Palette 3D
-//
-//  The visionOS `.volumetric` window: renders a palette's sphere, looked up live from SwiftData by id
-//  so edits in the main window update the volume.
-//
-
 #if os(visionOS)
 import SwiftUI
 import SwiftData

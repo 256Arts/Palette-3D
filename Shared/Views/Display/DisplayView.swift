@@ -1,10 +1,3 @@
-//
-//  DisplayView.swift
-//  Palette 3D
-//
-//  Created by 256 Arts Developer on 2024-09-05.
-//
-
 import SwiftUI
 
 #if canImport(AppKit)

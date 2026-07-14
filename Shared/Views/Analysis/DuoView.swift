@@ -1,13 +1,3 @@
-//
-//  DuoView.swift
-//  Palette 3D
-//
-//  Pick two colors and a mix amount, then compare how CSS blends them: a `color-mix()` swatch
-//  followed by a gradient between the two colors in each interpolation color space.
-//  A background ``WebColorRenderer`` resolves the CSS colors (SwiftUI has no `color-mix()` or
-//  per-space interpolation); the results are drawn natively as `Color` swatches and gradients.
-//
-
 import SwiftUI
 import Foundation
 import ChromaKit

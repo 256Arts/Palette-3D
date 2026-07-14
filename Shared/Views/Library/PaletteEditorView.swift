@@ -1,11 +1,3 @@
-//
-//  PaletteEditorView.swift
-//  Palette 3D
-//
-//  Edits one saved palette. Perfect palettes expose the generator parameters until the user
-//  customizes a color, after which generation is locked to preserve their edits.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 #if os(macOS)

@@ -1,11 +1,3 @@
-//
-//  DraggableColor.swift
-//  Palette 3D
-//
-//  A palette color paired with its display color space, so a swatch can be dragged between
-//  grid positions (reordered) and out to other apps as a plain `Color`.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 

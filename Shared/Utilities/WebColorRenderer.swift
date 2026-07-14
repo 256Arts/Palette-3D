@@ -1,15 +1,3 @@
-//
-//  WebColorRenderer.swift
-//  Palette 3D
-//
-//  An offscreen `WKWebView` that resolves CSS colors SwiftUI can't compute itself — `color-mix()`
-//  in arbitrary interpolation spaces (oklch, lab, hwb, …). It paints each color into a 1×1 Display-P3
-//  canvas and reads the pixel back, so callers get concrete `P3` values to render natively in SwiftUI.
-//
-//  This replaces embedding a live `WKWebView` in the view hierarchy: the browser does only the color
-//  math in the background, and the result is drawn with real `Color` swatches and `LinearGradient`s.
-//
-
 import WebKit
 import ChromaKit
 

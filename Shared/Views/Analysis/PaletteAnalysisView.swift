@@ -1,11 +1,3 @@
-//
-//  PaletteAnalysisView.swift
-//  Palette 3D
-//
-//  A read-only analysis modal for a palette: pairwise perceptual difference (ΔE₀₀) and WCAG
-//  contrast statistics, plus lightness / chroma / hue coverage and gamut counts.
-//
-
 import SwiftUI
 import ChromaKit
 

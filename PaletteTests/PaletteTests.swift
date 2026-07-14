@@ -1,10 +1,3 @@
-//
-//  PaletteTests.swift
-//  PaletteTests
-//
-//  Created by 256 Arts Developer on 2024-09-05.
-//
-
 import Testing
 import SwiftData
 import SwiftUI

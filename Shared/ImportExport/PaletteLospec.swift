@@ -1,12 +1,3 @@
-//
-//  PaletteLospec.swift
-//  Palette 3D
-//
-//  Imports palettes from lospec.com. The site's "Open in App" button launches
-//  `lospec-palette://<slug>` URLs (scheme registered in Info.plist); the palette itself
-//  is then fetched as JSON from the site's palette-list API.
-//
-
 import Foundation
 
 /// A palette fetched from lospec.com's palette-list JSON API.

@@ -1,11 +1,3 @@
-//
-//  PaletteGridView.swift
-//  Palette 3D
-//
-//  Grid of color swatches. Tapping a swatch opens its details; pinch to zoom the swatches larger or
-//  smaller. Larger swatches reveal the color's name, and the largest also show its hex value.
-//
-
 import SwiftUI
 #if canImport(AppKit)
 import AppKit

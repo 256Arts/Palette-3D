@@ -1,12 +1,3 @@
-//
-//  PaletteSphereView.swift
-//  Palette 3D
-//
-//  RealityKit sphere visualization of a palette, shared by the inline display and the visionOS volume.
-//  Each color is one sphere entity positioned at its perceptual 3D coordinate. When `onSelect` is set,
-//  the spheres become tappable so a color can be edited by tapping it.
-//
-
 import SwiftUI
 import RealityKit
 
