@@ -160,7 +160,7 @@
 			);
 			mainGroup = 351A161A28AA868F0047AA76;
 			packageReferences = (
-				1BB5DA352FFD5BE7007D405C /* XCLocalSwiftPackageReference "PaletteKit" */,
+				1BB5DA352FFD5BE7007D405C /* XCRemoteSwiftPackageReference "PaletteKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 351A162828AA86900047AA76 /* Products */;
@@ -503,16 +503,21 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		1BB5DA352FFD5BE7007D405C /* XCLocalSwiftPackageReference "PaletteKit" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../../../../../Volumes/Kingston/GitHub/PaletteKit";
+/* Begin XCRemoteSwiftPackageReference section */
+		1BB5DA352FFD5BE7007D405C /* XCRemoteSwiftPackageReference "PaletteKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/256Arts/PaletteKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		1B4230FA2C89558A001FD549 /* PaletteKit */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 1BB5DA352FFD5BE7007D405C /* XCRemoteSwiftPackageReference "PaletteKit" */;
 			productName = PaletteKit;
 		};
 /* End XCSwiftPackageProductDependency section */
