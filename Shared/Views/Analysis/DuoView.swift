@@ -40,26 +40,16 @@ struct DuoView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                HStack(spacing: 16) {
-                    ColorPicker("First Color", selection: $firstColor, supportsOpacity: false)
-                    if mode == .mix {
-                        VStack(spacing: 6) {
-                            HStack {
-                                Text("Mix")
-                                Spacer()
-                                Text("\(percent)% / \(100 - percent)%")
-                                    .monospacedDigit()
-                                    .foregroundStyle(.secondary)
-                            }
-                            Slider(value: $mix, in: 0...100)
-                                .tint(.clear)
-                        }
-                    } else {
+                if mode == .mix {
+                    MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix)
+                } else {
+                    HStack(spacing: 16) {
+                        ColorPicker("First Color", selection: $firstColor, supportsOpacity: false)
                         Spacer()
+                        ColorPicker("Second Color", selection: $secondColor, supportsOpacity: false)
                     }
-                    ColorPicker("Second Color", selection: $secondColor, supportsOpacity: false)
+                    .labelsHidden()
                 }
-                .labelsHidden()
 
                 if let metrics, mode == .stats {
                     MetricsView(first: firstColor, second: secondColor, deltaE: metrics.deltaE, contrast: metrics.contrast)
