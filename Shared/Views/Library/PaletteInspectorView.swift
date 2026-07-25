@@ -47,6 +47,7 @@ struct PaletteInspectorView: View {
         }
         .frame(maxWidth: 320)
         .padding(.horizontal)
+        .padding(.bottom, 8)
     }
 
     @ViewBuilder private var content: some View {
