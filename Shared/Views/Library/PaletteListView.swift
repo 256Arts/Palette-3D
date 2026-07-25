@@ -55,15 +55,6 @@ struct PaletteListView: View {
                 DuoView()
             }
             .toolbar {
-                ToolbarItem {
-                    Button("Duo", systemImage: "swirl.circle.righthalf.filled") {
-                        showingDuo = true
-                    }
-                }
-                #if !os(visionOS)
-                ToolbarSpacer(.fixed)
-                #endif
-
                 ToolbarItem(placement: .primaryAction) {
                     Menu("New Palette", systemImage: "plus") {
                         Button("Perfect Palette", systemImage: "sparkles") {
@@ -79,6 +70,16 @@ struct PaletteListView: View {
                         Button("Import Palette Image…", systemImage: "photo") {
                             showingImageImporter = true
                         }
+                    }
+                }
+
+                #if !os(visionOS)
+                ToolbarSpacer(.fixed)
+                #endif
+
+                ToolbarItem {
+                    Button("Duo", systemImage: "swirl.circle.righthalf.filled") {
+                        showingDuo = true
                     }
                 }
 
