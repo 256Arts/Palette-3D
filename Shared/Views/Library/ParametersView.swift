@@ -76,7 +76,6 @@ struct ParametersView: View {
                 }
             }
         }
-        .navigationTitle("Palette Parameters")
     }
 }
 

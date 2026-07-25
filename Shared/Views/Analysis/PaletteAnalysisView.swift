@@ -24,6 +24,11 @@ struct PaletteAnalysisView: View {
                                        description: Text("Add at least two colors to analyze how they relate."))
             } else if let analysis {
                 analysisList(analysis)
+            } else {
+                // Not decoration: without it this branch is empty content, and `.task` doesn't run on
+                // empty content — the analysis would never be computed, leaving the panel blank forever.
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .task(id: Inputs(colors: colors, colorSpace: colorSpace)) {

@@ -22,37 +22,37 @@ struct PaletteInspectorView: View {
 
     private var selection: Panel { canEditParameters ? panel : .analysis }
 
+    /// The panel carries its own navigation bar so the switcher can sit in the middle of it. On iPhone the
+    /// inspector is a sheet, where a toolbar exists only inside a navigation stack.
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            switch selection {
-            case .parameters:
-                ParametersView(generator: generator)
-            case .analysis:
-                PaletteAnalysisView(colors: colors, colorSpace: generator.parameters.colorSpace)
-            }
+        NavigationStack {
+            content
+                .navigationTitle(canEditParameters ? "" : Panel.analysis.rawValue)
+                #if !os(macOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar {
+                    // With no parameters there is nothing to switch, so the title names the panel instead.
+                    if canEditParameters {
+                        ToolbarItem(placement: .principal) {
+                            Picker("Panel", selection: $panel) {
+                                ForEach(Panel.allCases) { Text($0.rawValue).tag($0) }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+                    }
+                }
         }
     }
 
-    /// Above the panel rather than inside it, so it survives the smallest detent — where the drawer is a
-    /// sliver, and that sliver is then still a control rather than a blank edge.
-    @ViewBuilder private var header: some View {
-        Group {
-            if canEditParameters {
-                Picker("Panel", selection: $panel) {
-                    ForEach(Panel.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            } else {
-                Text(Panel.analysis.rawValue)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+    @ViewBuilder private var content: some View {
+        switch selection {
+        case .parameters:
+            ParametersView(generator: generator)
+        case .analysis:
+            PaletteAnalysisView(colors: colors, colorSpace: generator.parameters.colorSpace)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
     }
 }
 
