@@ -76,16 +76,28 @@ struct DuoView: View {
         #endif
     }
 
-    /// The mix capsule, or a plain pair of picker rows when the mix ratio doesn't apply.
+    /// The mix capsule, or the bare pair of pickers when the mix ratio doesn't apply. The capsule is its
+    /// own shape, so it drops the row's background rather than sitting in a second container.
     @ViewBuilder private var colorControls: some View {
         if mode == .mix {
             MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix)
                 .padding(.vertical, 4)
                 .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
         } else {
-            ColorPicker("First Color", selection: $firstColor, supportsOpacity: false)
-            ColorPicker("Second Color", selection: $secondColor, supportsOpacity: false)
+            // Placed at opposite ends, matching where each color sits on the mix capsule — which is also
+            // what makes the labels redundant.
+            HStack {
+                picker("First Color", selection: $firstColor)
+                Spacer()
+                picker("Second Color", selection: $secondColor)
+            }
         }
+    }
+
+    private func picker(_ title: LocalizedStringKey, selection: Binding<Color>) -> some View {
+        ColorPicker(title, selection: selection, supportsOpacity: false)
+            .labelsHidden()
     }
 
     private var percent: Int { Int(mix.rounded()) }
@@ -123,13 +135,13 @@ struct DuoView: View {
         return picked.cssString(colorSpace: .okLch, convertedToP3: true)
     }
 
-    /// A monospaced space label beside its resolved swatch or gradient.
+    /// A space label beside its resolved swatch or gradient.
     private func interpolationRow(_ bar: InterpolationBar) -> some View {
         LabeledContent {
             barShape(bar.colors)
         } label: {
             Text(bar.space)
-                .font(.system(.footnote, design: .monospaced))
+                .font(.footnote)
                 .foregroundStyle(.secondary)
         }
         .labeledContentStyle(.interpolation)
@@ -152,8 +164,8 @@ struct DuoView: View {
     private var heading: String {
         switch mode {
         case .stats: ""
-        case .mix: "\(percent)% / \(100 - percent)% by interpolation space"
-        case .gradient: "Gradients by interpolation space"
+        case .mix: "\(percent)% / \(100 - percent)% by Interpolation Space"
+        case .gradient: "Gradients by Interpolation Space"
         }
     }
 

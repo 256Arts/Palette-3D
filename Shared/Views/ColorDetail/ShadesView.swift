@@ -15,6 +15,10 @@ struct ShadesView: View {
     /// The base color as a CSS literal, e.g. `oklch(...)` or `color(display-p3 ...)`.
     let css: String
 
+    /// Opens a shade's own details. Left `nil` where drilling in doesn't apply — the ramp is then
+    /// display-only, and each swatch is still draggable.
+    var onSelect: ((Color) -> Void)?
+
     @State private var ramps: [ShadeRamp] = []
 
     /// Interpolation spaces worth comparing: perceptual, then the classic web spaces.
@@ -30,7 +34,7 @@ struct ShadesView: View {
                 ForEach(ramps) { ramp in
                     HStack(spacing: 12) {
                         Text(ramp.space)
-                            .font(.system(.footnote, design: .monospaced))
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                             .frame(width: 52, alignment: .leading)
                         strip(ramp.shades)
@@ -44,19 +48,45 @@ struct ShadesView: View {
         .task(id: css) { await load() }
     }
 
-    /// The ramp as one continuous bar, each step draggable as its own color.
+    /// The ramp as one continuous bar, each step draggable as its own color and tappable for its details.
     private func strip(_ shades: [Color]) -> some View {
         let shape = RoundedRectangle(cornerRadius: 7)
         return HStack(spacing: 0) {
-            ForEach(Array(shades.enumerated()), id: \.offset) { _, shade in
-                shade
-                    .frame(maxWidth: .infinity)
+            ForEach(Array(zip(Self.steps, shades)), id: \.0) { step, shade in
+                swatch(shade, step: step)
                     .draggable(shade)
             }
         }
         .frame(height: 32)
         .clipShape(shape)
         .overlay(shape.strokeBorder(.primary.opacity(0.12)))
+    }
+
+    /// One step of the ramp — a button into its details where that applies, and otherwise the bare color.
+    /// Not a disabled button: `.plain` dims what it disables, which would wash out the very thing on show.
+    @ViewBuilder private func swatch(_ shade: Color, step: Double) -> some View {
+        if let onSelect {
+            Button {
+                onSelect(shade)
+            } label: {
+                shade.frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(name(ofStep: step))
+        } else {
+            shade
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel(name(ofStep: step))
+        }
+    }
+
+    /// The ramp is otherwise nine unnamed swatches, indistinguishable to VoiceOver.
+    private func name(ofStep step: Double) -> String {
+        switch step {
+        case 0: "Base"
+        case ..<0: "\(Int(-step))% lighter"
+        default: "\(Int(step))% darker"
+        }
     }
 
     private var legend: some View {

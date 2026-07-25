@@ -27,15 +27,29 @@ struct PaletteListView: View {
                     #endif
                 }
                 .onDelete(perform: delete)
+
+                // In the list rather than an overlay, so it can't blanket the gallery below — which is
+                // exactly what an empty library most needs to reach.
+                if palettes.isEmpty {
+                    ContentUnavailableView("No Palettes", systemImage: "swatchpalette", description: Text("Start from a premade palette below, create your own, or import a .gpl file or palette image."))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
+
+                Section {
+                    PremadePaletteGallery(onSelect: add)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                } header: {
+                    Text("Premade Palettes")
+                } footer: {
+                    Text("Tap one to add a copy to your library.")
+                }
             }
             .navigationTitle("Palettes")
             .navigationDestination(for: Palette.self) { palette in
                 PaletteEditorView(palette: palette)
-            }
-            .overlay {
-                if palettes.isEmpty {
-                    ContentUnavailableView("No Palettes", systemImage: "swatchpalette", description: Text("Create a palette, or import a .gpl file or palette image."))
-                }
             }
             .sheet(isPresented: $showingDuo) {
                 DuoView()
@@ -103,6 +117,11 @@ struct PaletteListView: View {
     private func create(_ palette: Palette) {
         modelContext.insert(palette)
         path.append(palette)
+    }
+
+    /// Lands a premade as the user's own plain palette — a copy they can edit freely, like any import.
+    private func add(_ premade: PaletteKit.Palette) {
+        create(Palette(premade))
     }
 
     private func delete(_ offsets: IndexSet) {

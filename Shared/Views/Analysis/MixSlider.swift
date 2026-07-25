@@ -11,7 +11,9 @@ struct MixSlider: View {
     @Binding var mix: Double
 
     private static let height: CGFloat = 64
-    private static let dividerWidth: CGFloat = 6
+    private static let indicatorWidth: CGFloat = 6
+    /// Inset from the track's ends, so the indicator reads as a grabber rather than a hard split.
+    private static let indicatorInset: CGFloat = 14
     /// A side narrower than this can't legibly hold its percentage label.
     private static let minimumLabelShare: Double = 16
     private static let space = "MixSlider"
@@ -24,7 +26,7 @@ struct MixSlider: View {
                     firstColor.frame(width: split(in: width))
                     secondColor
                 }
-                divider(in: width)
+                indicator(in: width)
             }
             .clipShape(.capsule)
             .contentShape(.capsule)
@@ -51,12 +53,15 @@ struct MixSlider: View {
             .onChanged { mix = min(max(Double($0.location.x / width) * 100, 0), 100) }
     }
 
-    private func divider(in width: CGFloat) -> some View {
-        Rectangle()
+    /// The grab handle sitting on the split — a capsule inset from the track's ends, so it reads as
+    /// something to drag rather than as a seam between the two colors.
+    private func indicator(in width: CGFloat) -> some View {
+        Capsule()
             .fill(.background)
-            .frame(width: Self.dividerWidth)
-            .shadow(color: .black.opacity(0.2), radius: 2)
-            .offset(x: split(in: width) - Self.dividerWidth / 2)
+            .frame(width: Self.indicatorWidth)
+            .padding(.vertical, Self.indicatorInset)
+            .shadow(color: .black.opacity(0.25), radius: 3)
+            .offset(x: split(in: width) - Self.indicatorWidth / 2)
             #if os(iOS)
             .hoverEffect(.highlight)
             #endif

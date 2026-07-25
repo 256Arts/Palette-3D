@@ -41,8 +41,8 @@ final class Palette {
         Palette(name: name, parameters: nil, colors: colors)
     }
 
-    /// Saves an imported PaletteKit palette (a `.gpl`, `.clr`, palette image, or lospec fetch) as a
-    /// plain palette — an import has colors, but no generator recipe behind them.
+    /// Saves a PaletteKit palette (a `.gpl`, `.clr`, palette image, lospec fetch, or one of the bundled
+    /// premades) as a plain palette — it has colors, but no generator recipe behind them.
     convenience init(_ imported: PaletteKit.Palette) {
         self.init(name: imported.name, parameters: nil, colors: imported.colors)
     }

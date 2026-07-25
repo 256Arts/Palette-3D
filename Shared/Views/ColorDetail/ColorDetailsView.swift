@@ -10,7 +10,18 @@ struct ColorDetailsView: View {
 
     @Binding var color: PaletteColor
     let colorSpace: ColorSpace
-    var onDelete: () -> Void
+
+    /// `nil` for a derived color — one opened from the shade ramp, which has no palette row behind it.
+    var onDelete: (() -> Void)?
+
+    /// A shade opened from the ramp. `PaletteColor`'s own id is derived from its value, so editing the
+    /// shade would change its identity and re-present the sheet; this carries a stable one instead.
+    private struct Shade: Identifiable {
+        var color: PaletteColor
+        let id = UUID()
+    }
+
+    @State private var inspectedShade: Shade?
 
     /// The gamut whose color formats are listed. Defaults to the tightest gamut that contains the color.
     @State private var gamut: Gamut
@@ -22,7 +33,7 @@ struct ColorDetailsView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    init(color: Binding<PaletteColor>, colorSpace: ColorSpace, onDelete: @escaping () -> Void) {
+    init(color: Binding<PaletteColor>, colorSpace: ColorSpace, onDelete: (() -> Void)? = nil) {
         _color = color
         self.colorSpace = colorSpace
         self.onDelete = onDelete
@@ -77,13 +88,16 @@ struct ColorDetailsView: View {
 
                         formats
 
-                        ShadesView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true))
+                        ShadesView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
+                                   onSelect: shadeSelection)
 
-                        Button("Delete Color", systemImage: "trash", role: .destructive) {
-                            onDelete()
+                        if let onDelete {
+                            Button("Delete Color", systemImage: "trash", role: .destructive) {
+                                onDelete()
+                            }
+                            .frame(maxWidth: .infinity)
+                            .buttonStyle(.bordered)
                         }
-                        .frame(maxWidth: .infinity)
-                        .buttonStyle(.bordered)
                     }
                     .padding()
                 }
@@ -102,7 +116,24 @@ struct ColorDetailsView: View {
                     ShareLink(item: color.cssString(colorSpace: colorSpace, convertedToP3: false))
                 }
             }
+            .sheet(item: $inspectedShade) { _ in
+                if let shade = Binding($inspectedShade) {
+                    ColorDetailsView(color: shade.color, colorSpace: colorSpace)
+                }
+            }
         }
+    }
+
+    /// Drilling into a shade, but only from a palette color — a shade's own ramp doesn't drill further,
+    /// which is also what `onDelete == nil` marks: a derived color with no palette row behind it.
+    private var shadeSelection: ((Color) -> Void)? {
+        guard onDelete != nil else { return nil }
+        return inspect
+    }
+
+    private func inspect(_ shade: Color) {
+        guard let picked = PaletteColor(SystemColor(shade), colorSpace: colorSpace) else { return }
+        inspectedShade = Shade(color: picked)
     }
 
     /// The pinned formats first, then the full gamut-by-gamut list — collapsed behind a disclosure once
