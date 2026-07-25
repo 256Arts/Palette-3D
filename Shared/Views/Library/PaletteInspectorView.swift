@@ -23,17 +23,14 @@ struct PaletteInspectorView: View {
     private var selection: Panel { canEditParameters ? panel : .analysis }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            content
-        }
+        content
+            .safeAreaBar(edge: .top) { header }
     }
 
-    /// A bar the panel draws itself, not a real toolbar. A toolbar renders here only inside a navigation
-    /// stack, and nesting one is fatal: the inspector's content stays in the library's typed-path stack
-    /// even where it presents as a sheet, and SwiftUI traps comparing the two paths. Sitting above the
-    /// panel also keeps it alive at the smallest detent, where the drawer is a sliver.
+    /// A bar rather than a toolbar: a toolbar renders here only inside a navigation stack, and nesting one
+    /// is fatal — the inspector's content stays in the library's typed-path stack even where it presents
+    /// as a sheet, and SwiftUI traps comparing the two paths. As a safe area bar it still sits outside the
+    /// panel's scrolling content, so it survives the smallest detent, where the drawer is a sliver.
     @ViewBuilder private var header: some View {
         Group {
             // With no parameters there is nothing to switch, so the title names the panel instead.
@@ -43,16 +40,13 @@ struct PaletteInspectorView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(maxWidth: 320)
             } else {
                 Text(Panel.analysis.rawValue)
                     .font(.headline)
             }
         }
+        .frame(maxWidth: 320)
         .padding(.horizontal)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity)
-        .background(.bar)
     }
 
     @ViewBuilder private var content: some View {
