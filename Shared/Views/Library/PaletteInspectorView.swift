@@ -22,28 +22,37 @@ struct PaletteInspectorView: View {
 
     private var selection: Panel { canEditParameters ? panel : .analysis }
 
-    /// The panel carries its own navigation bar so the switcher can sit in the middle of it. On iPhone the
-    /// inspector is a sheet, where a toolbar exists only inside a navigation stack.
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            header
+            Divider()
             content
-                .navigationTitle(canEditParameters ? "" : Panel.analysis.rawValue)
-                #if !os(macOS)
-                .navigationBarTitleDisplayMode(.inline)
-                #endif
-                .toolbar {
-                    // With no parameters there is nothing to switch, so the title names the panel instead.
-                    if canEditParameters {
-                        ToolbarItem(placement: .principal) {
-                            Picker("Panel", selection: $panel) {
-                                ForEach(Panel.allCases) { Text($0.rawValue).tag($0) }
-                            }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
-                        }
-                    }
-                }
         }
+    }
+
+    /// A bar the panel draws itself, not a real toolbar. A toolbar renders here only inside a navigation
+    /// stack, and nesting one is fatal: the inspector's content stays in the library's typed-path stack
+    /// even where it presents as a sheet, and SwiftUI traps comparing the two paths. Sitting above the
+    /// panel also keeps it alive at the smallest detent, where the drawer is a sliver.
+    @ViewBuilder private var header: some View {
+        Group {
+            // With no parameters there is nothing to switch, so the title names the panel instead.
+            if canEditParameters {
+                Picker("Panel", selection: $panel) {
+                    ForEach(Panel.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 320)
+            } else {
+                Text(Panel.analysis.rawValue)
+                    .font(.headline)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .background(.bar)
     }
 
     @ViewBuilder private var content: some View {
