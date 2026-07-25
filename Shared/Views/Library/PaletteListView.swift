@@ -5,12 +5,15 @@ import UniformTypeIdentifiers
 
 struct PaletteListView: View {
 
+    /// Called when a palette arrives from outside the app, so the root can bring this tab forward — an
+    /// import that lands behind another tab would otherwise push its editor where nobody can see it.
+    var onExternalImport: () -> Void = {}
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityAssistiveAccessEnabled) private var isAssistiveAccessEnabled
     @Query(sort: \Palette.dateModified, order: .reverse) private var palettes: [Palette]
 
     @State private var path: [Palette] = []
-    @State private var showingDuo = false
     @State private var showingGPLImporter = false
     @State private var showingImageImporter = false
     @State private var showingImageImportError = false
@@ -51,9 +54,6 @@ struct PaletteListView: View {
             .navigationDestination(for: Palette.self) { palette in
                 PaletteEditorView(palette: palette)
             }
-            .sheet(isPresented: $showingDuo) {
-                DuoView()
-            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu("New Palette", systemImage: "plus") {
@@ -76,12 +76,6 @@ struct PaletteListView: View {
                 #if !os(visionOS)
                 ToolbarSpacer(.fixed)
                 #endif
-
-                ToolbarItem {
-                    Button("Duo", systemImage: "swirl.circle.righthalf.filled") {
-                        showingDuo = true
-                    }
-                }
 
                 #if !os(macOS)
                 if !isAssistiveAccessEnabled {
@@ -157,6 +151,7 @@ struct PaletteListView: View {
     /// Fetches and lands a palette from a `lospec-palette://<slug>` URL.
     private func importLospec(from url: URL) async {
         guard let palette = try? await PaletteKit.Palette.lospec(url, colorSpace: .okLch), !palette.colors.isEmpty else { return }
+        onExternalImport()
         create(Palette(palette))
     }
 }

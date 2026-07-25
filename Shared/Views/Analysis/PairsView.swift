@@ -9,7 +9,9 @@ private struct InterpolationBar: Identifiable {
     var id: String { space }
 }
 
-struct DuoView: View {
+/// Compares two colors: their `color-mix()` result and gradient path through every CSS interpolation
+/// space, plus the perceptual difference and contrast between them. A root tab, not a sheet.
+struct PairsView: View {
 
     /// Whether the page shows single-swatch `color-mix()` results or full gradients between the two colors.
     private enum Mode: String, CaseIterable, Identifiable {
@@ -18,8 +20,6 @@ struct DuoView: View {
         case stats = "Stats"
         var id: Self { self }
     }
-
-    @Environment(\.dismiss) private var dismiss
 
     @State private var firstColor = Color(.displayP3, red: 0.60, green: 0.20, blue: 0.85)
     @State private var secondColor = Color(.displayP3, red: 0.00, green: 0.70, blue: 0.85)
@@ -53,7 +53,7 @@ struct DuoView: View {
             .listStyle(.inset)
             #endif
             .task(id: inputKey) { await updateBars() }
-            .navigationTitle("Color Duo")
+            .navigationTitle("Pairs")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -64,16 +64,8 @@ struct DuoView: View {
                     }
                     .pickerStyle(.segmented)
                 }
-                ToolbarItem(placement: .navigation) {
-                    Button("Close", systemImage: "xmark", role: .close) { dismiss() }
-                }
             }
         }
-        #if os(macOS)
-        .frame(minWidth: 620, minHeight: 700)
-        #else
-        .presentationSizing(.page)
-        #endif
     }
 
     /// The mix capsule, or the bare pair of pickers when the mix ratio doesn't apply. The capsule is its
@@ -325,5 +317,5 @@ private struct ContrastSection: View {
 }
 
 #Preview {
-    DuoView()
+    PairsView()
 }

@@ -8,26 +8,36 @@ import AppKit
 
 struct ColorDetailsView: View {
 
+    /// Where the color came from, which decides how the view is dismissed and whether naming it means
+    /// anything. Two of these have no `onDelete`, so the closures alone can no longer tell them apart.
+    enum Provenance {
+        /// A row in a palette: named, deletable, confirmed with Done.
+        case palette
+        /// Opened from a shade or complement ramp — no palette row behind it, so it closes rather than
+        /// confirms, offers to be added, and its own ramps don't drill further.
+        case derived
+        /// The Color tab's scratch color. It belongs to no palette and is never dismissed.
+        case scratch
+    }
+
     @Binding var color: PaletteColor
     let colorSpace: ColorSpace
+    let provenance: Provenance
 
-    /// `nil` for a derived color — one opened from the shade ramp, which has no palette row behind it.
+    /// Removes the color from its palette. Only a `.palette` color has a row to remove.
     var onDelete: (() -> Void)?
 
-    /// Appends a color to the palette. Passed down to the shade sheet, which is where it applies.
+    /// Appends a color to the palette. Passed down to the derived-color sheet, which is where it applies.
     var onAdd: ((PaletteColor) -> Void)?
 
-    /// A shade has no palette row behind it, so it closes rather than confirms, and offers to be added.
-    private var isDerived: Bool { onDelete == nil }
-
-    /// A shade opened from the ramp. `PaletteColor`'s own id is derived from its value, so editing the
-    /// shade would change its identity and re-present the sheet; this carries a stable one instead.
-    private struct Shade: Identifiable {
+    /// A color opened from one of the ramps. `PaletteColor`'s own id is derived from its value, so editing
+    /// it would change its identity and re-present the sheet; this carries a stable one instead.
+    private struct DerivedColor: Identifiable {
         var color: PaletteColor
         let id = UUID()
     }
 
-    @State private var inspectedShade: Shade?
+    @State private var inspected: DerivedColor?
 
     /// The gamut whose color formats are listed. Defaults to the tightest gamut that contains the color.
     @State private var gamut: Gamut
@@ -41,10 +51,12 @@ struct ColorDetailsView: View {
 
     init(color: Binding<PaletteColor>,
          colorSpace: ColorSpace,
+         provenance: Provenance,
          onDelete: (() -> Void)? = nil,
          onAdd: ((PaletteColor) -> Void)? = nil) {
         _color = color
         self.colorSpace = colorSpace
+        self.provenance = provenance
         self.onDelete = onDelete
         self.onAdd = onAdd
         _gamut = State(initialValue: Gamut.containing([color.wrappedValue], colorSpace: colorSpace))
@@ -54,6 +66,24 @@ struct ColorDetailsView: View {
     /// so each is a true conversion, not the same fractions reinterpreted.
     private var gamutFormats: [ColorFormat] {
         gamut.representations.map { ColorFormat(gamut: gamut, representation: $0) }
+    }
+
+    /// A name is only worth offering where something keeps it: a palette color's row. A derived color is
+    /// discarded unless it's added, and the scratch color belongs to nothing at all — for both, the picker
+    /// takes the row on its own and carries its label rather than floating there as a bare swatch.
+    @ViewBuilder private var header: some View {
+        if provenance == .palette {
+            HStack {
+                TextField("Name", text: nameBinding)
+                    .font(.title2.weight(.semibold))
+                    .textFieldStyle(.plain)
+                ColorPicker("Edit Color", selection: colorPickerBinding, supportsOpacity: false)
+                    .labelsHidden()
+            }
+        } else {
+            ColorPicker("Edit Color", selection: colorPickerBinding, supportsOpacity: false)
+                .font(.title2.weight(.semibold))
+        }
     }
 
     private var nameBinding: Binding<String> {
@@ -88,18 +118,15 @@ struct ColorDetailsView: View {
                         }
 
                     VStack(alignment: .leading, spacing: 24) {
-                        HStack {
-                            TextField("Name", text: nameBinding)
-                                .font(.title2.weight(.semibold))
-                                .textFieldStyle(.plain)
-                            ColorPicker("Edit Color", selection: colorPickerBinding, supportsOpacity: false)
-                                .labelsHidden()
-                        }
+                        header
 
                         formats
 
                         ShadesView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
-                                   onSelect: shadeSelection)
+                                   onSelect: derivedSelection)
+
+                        ComplementsView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
+                                        onSelect: derivedSelection)
 
                         if let onDelete {
                             Button("Delete Color", systemImage: "trash", role: .destructive) {
@@ -119,7 +146,13 @@ struct ColorDetailsView: View {
             .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
             #endif
             .toolbar {
-                if isDerived {
+                // `.scratch` gets neither: a root tab has nothing to confirm, close, or add itself to.
+                if provenance == .palette {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done", systemImage: "checkmark") { dismiss() }
+                    }
+                }
+                if provenance == .derived {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Close", systemImage: "xmark") { dismiss() }
                     }
@@ -131,38 +164,37 @@ struct ColorDetailsView: View {
                             }
                         }
                     }
-                } else {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done", systemImage: "checkmark") { dismiss() }
-                    }
                 }
                 ToolbarItem {
                     ShareLink(item: color.cssString(colorSpace: colorSpace, convertedToP3: false))
                 }
             }
-            .sheet(item: $inspectedShade) { shade in
-                ColorDetailsView(color: binding(to: shade), colorSpace: colorSpace, onAdd: onAdd)
+            .sheet(item: $inspected) { derived in
+                ColorDetailsView(color: binding(to: derived),
+                                 colorSpace: colorSpace,
+                                 provenance: .derived,
+                                 onAdd: onAdd)
             }
         }
     }
 
-    /// Drilling into a shade, but only from a palette color — a shade's own ramp doesn't drill further,
-    /// which is also what `onDelete == nil` marks: a derived color with no palette row behind it.
-    private var shadeSelection: ((Color) -> Void)? {
-        guard onDelete != nil else { return nil }
+    /// Drilling into a ramp swatch — from a palette color or the scratch color, but not from a derived
+    /// one, whose own ramps deliberately don't drill further.
+    private var derivedSelection: ((Color) -> Void)? {
+        guard provenance != .derived else { return nil }
         return inspect
     }
 
-    private func inspect(_ shade: Color) {
-        guard let picked = PaletteColor(SystemColor(shade), colorSpace: colorSpace) else { return }
-        inspectedShade = Shade(color: picked)
+    private func inspect(_ derived: Color) {
+        guard let picked = PaletteColor(SystemColor(derived), colorSpace: colorSpace) else { return }
+        inspected = DerivedColor(color: picked)
     }
 
-    /// Edits write back to the presented shade, and reads fall back to the value the sheet was handed —
+    /// Edits write back to the presented color, and reads fall back to the value the sheet was handed —
     /// the state is already `nil` while the sheet animates away, and reading it unguarded would trap.
-    private func binding(to shade: Shade) -> Binding<PaletteColor> {
-        Binding(get: { inspectedShade?.color ?? shade.color },
-                set: { inspectedShade?.color = $0 })
+    private func binding(to derived: DerivedColor) -> Binding<PaletteColor> {
+        Binding(get: { inspected?.color ?? derived.color },
+                set: { inspected?.color = $0 })
     }
 
     /// The pinned formats first, then the full gamut-by-gamut list — collapsed behind a disclosure once
@@ -258,5 +290,6 @@ struct ColorDetailsView: View {
     ColorDetailsView(
         color: .constant(PaletteColor(lightnessFraction: 0.6, chromaFraction: 0.5, hueAngle: .degrees(30), name: "Coral")),
         colorSpace: .okLch,
+        provenance: .palette,
         onDelete: {})
 }

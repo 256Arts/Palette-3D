@@ -35,11 +35,11 @@ struct ParametersView: View {
 
                 Toggle("Chroma Starts at Zero", isOn: $generator.parameters.chromaStartsAtZero)
 
-                LabeledContent("Chroma Multiplier") {
+                LabeledContent("Chroma") {
                     HStack(spacing: 8) {
-                        Text(generator.parameters.chromaMultiplier, format: .percent)
+                        Text("\(generator.parameters.chromaMultiplier, format: .percent) of P3")
                         Stepper(
-                            "Chroma Multiplier",
+                            "Chroma",
                             value: $generator.parameters.chromaMultiplier,
                             in: 0...1,
                             step: 0.01)

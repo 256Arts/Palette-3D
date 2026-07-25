@@ -171,6 +171,7 @@ struct DisplayView: View {
                 ColorDetailsView(
                     color: colorValueBinding(index),
                     colorSpace: generator.parameters.colorSpace,
+                    provenance: .palette,
                     onDelete: {
                         deleteColor(at: index)
                         editingColorIndex = nil

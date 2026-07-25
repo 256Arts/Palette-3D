@@ -16,7 +16,7 @@ struct Palette3DApp: App {
 
     var body: some Scene {
         WindowGroup {
-            PaletteListView()
+            MainView()
                 .alert("Event Intro", isPresented: $showingEvent) {
                     Button("OK", role: .close) { }
                 } message: {
