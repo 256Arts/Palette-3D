@@ -48,7 +48,6 @@ struct PaletteGridView: View {
     let colors: [PaletteColor]
     let colorSpace: ColorSpace
     var onSelect: (Int) -> Void
-    var onAdd: () -> Void
     var onDropColors: ([Color]) -> Void
     var onDelete: (Int) -> Void
     var onReorder: (ReorderDifference<PaletteColor.ID, ReorderableSingleCollectionIdentifier>) -> Void
@@ -78,7 +77,6 @@ struct PaletteGridView: View {
                     swatch(item.color)
                 }
                 .reorderable()
-                addButton
             }
             .reorderContainer(for: DraggableColor.self) { difference in
                 onReorder(difference)
@@ -152,20 +150,6 @@ struct PaletteGridView: View {
         }
     }
 
-    private var addButton: some View {
-        Button(action: onAdd) {
-            RoundedRectangle(cornerRadius: effectiveSize * 0.18, style: .continuous)
-                .fill(.quaternary)
-                .aspectRatio(1, contentMode: .fit)
-                .overlay {
-                    Image(systemName: "plus")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-        }
-        .buttonStyle(.plain)
-    }
-
     private var zoom: some Gesture {
         MagnifyGesture()
             .updating($pinch) { value, state, _ in state = value.magnification }
@@ -183,7 +167,6 @@ struct PaletteGridView: View {
         ],
         colorSpace: .okLch,
         onSelect: { _ in },
-        onAdd: {},
         onDropColors: { _ in },
         onDelete: { _ in },
         onReorder: { _ in })

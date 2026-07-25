@@ -80,7 +80,6 @@ struct DisplayView: View {
                     colors: paletteColors,
                     colorSpace: generator.parameters.colorSpace,
                     onSelect: { editingColorIndex = $0 },
-                    onAdd: { showingAddColor = true },
                     onDropColors: addColors,
                     onDelete: { deleteColor(at: $0) },
                     onReorder: reorderColors)
@@ -118,6 +117,12 @@ struct DisplayView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
+            // Adding a color belongs to the palette, not to one way of looking at it, so it stays put
+            // across the display modes — including text, where typing a CSS line is the clumsier path.
+            ToolbarItem {
+                Button("Add Color", systemImage: "plus") { showingAddColor = true }
+            }
+
             ToolbarItem(placement: displayModePlacement) {
                 Picker("Display Mode", selection: $displayMode) {
                     Image(systemName: "rotate.3d")
@@ -164,7 +169,8 @@ struct DisplayView: View {
                     onDelete: {
                         deleteColor(at: index)
                         editingColorIndex = nil
-                    })
+                    },
+                    onAdd: appendColor)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
             }

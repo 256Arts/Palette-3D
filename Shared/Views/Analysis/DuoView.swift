@@ -81,7 +81,6 @@ struct DuoView: View {
     @ViewBuilder private var colorControls: some View {
         if mode == .mix {
             MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix)
-                .padding(.vertical, 4)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
         } else {
@@ -141,7 +140,7 @@ struct DuoView: View {
             barShape(bar.colors)
         } label: {
             Text(bar.space)
-                .font(.footnote)
+                .font(.headline)
                 .foregroundStyle(.secondary)
         }
         .labeledContentStyle(.interpolation)
@@ -164,7 +163,7 @@ struct DuoView: View {
     private var heading: String {
         switch mode {
         case .stats: ""
-        case .mix: "\(percent)% / \(100 - percent)% by Interpolation Space"
+        case .mix: "Mix by Interpolation Space"
         case .gradient: "Gradients by Interpolation Space"
         }
     }
@@ -222,7 +221,7 @@ private struct InterpolationLabeledContentStyle: LabeledContentStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 12) {
             configuration.label
-                .frame(width: 74, alignment: .leading)
+                .frame(width: 100, alignment: .leading)
             configuration.content
         }
     }

@@ -14,6 +14,12 @@ struct ColorDetailsView: View {
     /// `nil` for a derived color — one opened from the shade ramp, which has no palette row behind it.
     var onDelete: (() -> Void)?
 
+    /// Appends a color to the palette. Passed down to the shade sheet, which is where it applies.
+    var onAdd: ((PaletteColor) -> Void)?
+
+    /// A shade has no palette row behind it, so it closes rather than confirms, and offers to be added.
+    private var isDerived: Bool { onDelete == nil }
+
     /// A shade opened from the ramp. `PaletteColor`'s own id is derived from its value, so editing the
     /// shade would change its identity and re-present the sheet; this carries a stable one instead.
     private struct Shade: Identifiable {
@@ -33,10 +39,14 @@ struct ColorDetailsView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    init(color: Binding<PaletteColor>, colorSpace: ColorSpace, onDelete: (() -> Void)? = nil) {
+    init(color: Binding<PaletteColor>,
+         colorSpace: ColorSpace,
+         onDelete: (() -> Void)? = nil,
+         onAdd: ((PaletteColor) -> Void)? = nil) {
         _color = color
         self.colorSpace = colorSpace
         self.onDelete = onDelete
+        self.onAdd = onAdd
         _gamut = State(initialValue: Gamut.containing([color.wrappedValue], colorSpace: colorSpace))
     }
 
@@ -109,17 +119,29 @@ struct ColorDetailsView: View {
             .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
             #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", systemImage: "checkmark") { dismiss() }
+                if isDerived {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close", systemImage: "xmark") { dismiss() }
+                    }
+                    if let onAdd {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Add", systemImage: "plus") {
+                                onAdd(color)
+                                dismiss()
+                            }
+                        }
+                    }
+                } else {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done", systemImage: "checkmark") { dismiss() }
+                    }
                 }
                 ToolbarItem {
                     ShareLink(item: color.cssString(colorSpace: colorSpace, convertedToP3: false))
                 }
             }
-            .sheet(item: $inspectedShade) { _ in
-                if let shade = Binding($inspectedShade) {
-                    ColorDetailsView(color: shade.color, colorSpace: colorSpace)
-                }
+            .sheet(item: $inspectedShade) { shade in
+                ColorDetailsView(color: binding(to: shade), colorSpace: colorSpace, onAdd: onAdd)
             }
         }
     }
@@ -134,6 +156,13 @@ struct ColorDetailsView: View {
     private func inspect(_ shade: Color) {
         guard let picked = PaletteColor(SystemColor(shade), colorSpace: colorSpace) else { return }
         inspectedShade = Shade(color: picked)
+    }
+
+    /// Edits write back to the presented shade, and reads fall back to the value the sheet was handed —
+    /// the state is already `nil` while the sheet animates away, and reading it unguarded would trap.
+    private func binding(to shade: Shade) -> Binding<PaletteColor> {
+        Binding(get: { inspectedShade?.color ?? shade.color },
+                set: { inspectedShade?.color = $0 })
     }
 
     /// The pinned formats first, then the full gamut-by-gamut list — collapsed behind a disclosure once
@@ -195,14 +224,20 @@ struct ColorDetailsView: View {
                 .monospaced()
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Button(isPinned ? "Unpin" : "Pin", systemImage: isPinned ? "pin.fill" : "pin") {
-                pinnedFormats.toggle(format)
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
             Button("Copy", systemImage: "doc.on.doc") { copy(value) }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
+            Menu {
+                Button(isPinned ? "Unpin" : "Pin", systemImage: isPinned ? "pin.slash" : "pin") {
+                    pinnedFormats.toggle(format)
+                }
+                ShareLink(item: value)
+            } label: {
+                Label("More", systemImage: "ellipsis")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .menuIndicator(.hidden)
         }
         .font(.callout)
         .padding(.horizontal, 12)

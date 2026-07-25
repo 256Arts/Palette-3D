@@ -6,39 +6,32 @@ struct PaletteAnalysisView: View {
     let colors: [PaletteColor]
     let colorSpace: ColorSpace
 
-    @Environment(\.dismiss) private var dismiss
-
-    private var analysis: PaletteAnalysis { PaletteAnalysis(colors: colors, colorSpace: colorSpace) }
-
-    var body: some View {
-        NavigationStack {
-            Group {
-                if colors.count < 2 {
-                    ContentUnavailableView("Not Enough Colors",
-                                           systemImage: "chart.bar.xaxis",
-                                           description: Text("Add at least two colors to analyze how they relate."))
-                } else {
-                    analysisList
-                }
-            }
-            .navigationTitle("Analysis")
-            #if !os(macOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .navigation) {
-                    Button("Close", systemImage: "xmark", role: .close) { dismiss() }
-                }
-            }
-        }
-        #if os(macOS)
-        .frame(minWidth: 460, minHeight: 620)
-        #else
-        .presentationDetents([.medium, .large])
-        #endif
+    /// The inputs the analysis is derived from, as one value to key the recompute on.
+    private struct Inputs: Equatable {
+        let colors: [PaletteColor]
+        let colorSpace: ColorSpace
     }
 
-    private var analysisList: some View {
+    /// Held rather than computed: this view lives in the editor's inspector, alongside the controls that
+    /// edit the palette, and the pairwise analysis is O(n²) — it must not run on every body evaluation.
+    @State private var analysis: PaletteAnalysis?
+
+    var body: some View {
+        Group {
+            if colors.count < 2 {
+                ContentUnavailableView("Not Enough Colors",
+                                       systemImage: "chart.bar.xaxis",
+                                       description: Text("Add at least two colors to analyze how they relate."))
+            } else if let analysis {
+                analysisList(analysis)
+            }
+        }
+        .task(id: Inputs(colors: colors, colorSpace: colorSpace)) {
+            analysis = PaletteAnalysis(colors: colors, colorSpace: colorSpace)
+        }
+    }
+
+    private func analysisList(_ analysis: PaletteAnalysis) -> some View {
         List {
             Section {
                 stats(analysis.deltaE, format: .deltaE)

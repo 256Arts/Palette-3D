@@ -11,7 +11,6 @@ struct PaletteEditorView: View {
 
     @State private var exportError: String?
     @State private var showingDiscardConfirmation = false
-    @State private var showingAnalysis = false
 
     @State private var generator = PaletteGenerator()
     @State private var paletteText = ""
@@ -32,8 +31,16 @@ struct PaletteEditorView: View {
     private let isPhone = false
     #endif
 
+    /// The inspector is no longer gated on the parameters: a palette that can't be regenerated still has
+    /// an analysis to show there.
     private var inspectorPresented: Binding<Bool> {
-        Binding(get: { showingInspector && palette.canEditParameters }, set: { showingInspector = $0 })
+        Binding(get: { showingInspector }, set: { showingInspector = $0 })
+    }
+
+    private var inspector: some View {
+        PaletteInspectorView(generator: generator,
+                             colors: palette.colors,
+                             canEditParameters: palette.canEditParameters)
     }
 
     private var display: some View {
@@ -72,13 +79,6 @@ struct PaletteEditorView: View {
                 .visibilityPriority(.high)
                 #endif
 
-                ToolbarItem(placement: .secondaryAction) {
-                    Button("Analyze", systemImage: "chart.bar.xaxis") {
-                        showingAnalysis = true
-                    }
-                    .disabled(palette.colors.count < 2)
-                }
-
                 // Only a customized perfect palette can be reverted to its generated colors.
                 if palette.parameters != nil && palette.isCustomized {
                     ToolbarItem(placement: .secondaryAction) {
@@ -97,9 +97,6 @@ struct PaletteEditorView: View {
                 Button("OK") { }
             } message: { message in
                 Text(message)
-            }
-            .sheet(isPresented: $showingAnalysis) {
-                PaletteAnalysisView(colors: palette.colors, colorSpace: generator.parameters.colorSpace)
             }
             .onChange(of: generator.parameters) { _, parameters in
                 regenerate(parameters)
@@ -184,25 +181,24 @@ struct PaletteEditorView: View {
         // visionOS has no `.inspector`; place the parameters alongside the display instead.
         HStack(spacing: 0) {
             display
-            if palette.canEditParameters {
-                ParametersView(generator: generator)
-                    .frame(width: 360)
-            }
+            inspector
+                .frame(width: 360)
         }
         #else
         display
             .safeAreaPadding(.bottom, selectedDetent == .height(64) || horizontalSizeClass == .regular || !isPhone ? 0 : 400)
             .inspector(isPresented: inspectorPresented) {
-                ParametersView(generator: generator)
+                inspector
                     .presentationDetents([.height(64), .medium, .large], selection: $selectedDetent)
                     .presentationBackgroundInteraction(.enabled)
                     .interactiveDismissDisabled(isPhone)
                     .inspectorColumnWidth(ideal: 360)
             }
             .toolbar {
-                if palette.canEditParameters && !showingInspector {
+                // Ungated: closing the inspector on a palette with no parameters would otherwise strand it.
+                if !showingInspector {
                     ToolbarItem {
-                        Button("Parameters", systemImage: "sidebar.trailing") {
+                        Button("Inspector", systemImage: "sidebar.trailing") {
                             showingInspector = true
                         }
                     }
@@ -215,6 +211,8 @@ struct PaletteEditorView: View {
         if let parameters = palette.parameters {
             generator.parameters = parameters
         }
+        // Parameters are why you opened the editor; the analysis isn't, so it starts as a sliver.
+        selectedDetent = palette.canEditParameters ? .medium : .height(64)
         paletteText = PaletteColor.cssText(palette.colors, colorSpace: generator.parameters.colorSpace, convertedToP3: false)
     }
 

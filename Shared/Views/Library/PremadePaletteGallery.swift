@@ -39,6 +39,7 @@ struct PremadePaletteGallery: View {
             .padding(.vertical, 4)
         }
         .scrollTargetBehavior(.viewAligned)
+        .scrollIndicators(.hidden)
         .paletteColorSpace(Self.colorSpace)
         .task {
             palettes = PaletteKit.Palette.handpickedPalettes(colorSpace: Self.colorSpace)
