@@ -60,6 +60,10 @@ struct PaletteListView: View {
                         showingDuo = true
                     }
                 }
+                #if !os(visionOS)
+                ToolbarSpacer(.fixed)
+                #endif
+
                 ToolbarItem(placement: .primaryAction) {
                     Menu("New Palette", systemImage: "plus") {
                         Button("Perfect Palette", systemImage: "sparkles") {

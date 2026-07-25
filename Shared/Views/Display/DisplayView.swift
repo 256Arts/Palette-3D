@@ -123,6 +123,11 @@ struct DisplayView: View {
                 Button("Add Color", systemImage: "plus") { showingAddColor = true }
             }
 
+            #if !os(visionOS)
+            // Adding a color is its own action, not one of the display's; visionOS has no spacer to say so.
+            ToolbarSpacer(.fixed)
+            #endif
+
             ToolbarItem(placement: displayModePlacement) {
                 Picker("Display Mode", selection: $displayMode) {
                     Image(systemName: "rotate.3d")
