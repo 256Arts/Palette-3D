@@ -4,6 +4,9 @@ import WebKit
 @MainActor
 final class WebColorRenderer: NSObject, WKNavigationDelegate {
 
+    /// One bootstrapped web view for the whole app — every color-math caller shares it.
+    static let shared = WebColorRenderer()
+
     private let webView = WKWebView(frame: .zero)
 
     /// Whether the bootstrap page has finished loading and `window.resolveColors` is callable.

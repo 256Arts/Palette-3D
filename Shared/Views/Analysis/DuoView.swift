@@ -27,8 +27,6 @@ struct DuoView: View {
     @State private var mix: Double = 50
     @State private var mode: Mode = .mix
 
-    /// Resolves `color-mix()` / gradient stops in the background, off the SwiftUI view tree.
-    @State private var renderer = WebColorRenderer()
     /// The natively-drawable bars for the current inputs, one per interpolation space.
     @State private var bars: [InterpolationBar] = []
 
@@ -39,27 +37,21 @@ struct DuoView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                if mode == .mix {
-                    MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix)
+            List {
+                Section { colorControls }
+                if mode == .stats {
+                    statsSections
                 } else {
-                    HStack(spacing: 16) {
-                        ColorPicker("First Color", selection: $firstColor, supportsOpacity: false)
-                        Spacer()
-                        ColorPicker("Second Color", selection: $secondColor, supportsOpacity: false)
+                    Section(heading) {
+                        ForEach(bars) { bar in
+                            interpolationRow(bar)
+                        }
                     }
-                    .labelsHidden()
-                }
-
-                if let metrics, mode == .stats {
-                    MetricsView(first: firstColor, second: secondColor, deltaE: metrics.deltaE, contrast: metrics.contrast)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    interpolationView
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
             }
-            .padding()
+            #if os(macOS)
+            .listStyle(.inset)
+            #endif
             .task(id: inputKey) { await updateBars() }
             .navigationTitle("Color Duo")
             #if !os(macOS)
@@ -78,10 +70,22 @@ struct DuoView: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 640, minHeight: 820)
+        .frame(minWidth: 620, minHeight: 700)
         #else
         .presentationSizing(.page)
         #endif
+    }
+
+    /// The mix capsule, or a plain pair of picker rows when the mix ratio doesn't apply.
+    @ViewBuilder private var colorControls: some View {
+        if mode == .mix {
+            MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix)
+                .padding(.vertical, 4)
+                .listRowSeparator(.hidden)
+        } else {
+            ColorPicker("First Color", selection: $firstColor, supportsOpacity: false)
+            ColorPicker("Second Color", selection: $secondColor, supportsOpacity: false)
+        }
     }
 
     private var percent: Int { Int(mix.rounded()) }
@@ -93,51 +97,74 @@ struct DuoView: View {
         return (ColorMetrics.deltaE2000(first, second), ColorMetrics.wcagContrast(first, second))
     }
 
+    @ViewBuilder private var statsSections: some View {
+        if let metrics {
+            Section("Perceptual Difference") {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(metrics.deltaE, format: .number.precision(.fractionLength(1)))
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .monospacedDigit()
+                    Text("ΔE₀₀")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    Text(deltaEDescription(metrics.deltaE))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            ContrastSection(first: firstColor, second: secondColor, contrast: metrics.contrast)
+        }
+    }
+
     /// A picked color as a CSS `color(display-p3 ...)` literal, preserving wide-gamut values.
     private func cssColor(_ color: Color) -> String {
         guard let picked = PaletteColor(SystemColor(color), colorSpace: .okLch) else { return "black" }
         return picked.cssString(colorSpace: .okLch, convertedToP3: true)
     }
 
-    /// Natively-drawn interpolation rows: a monospaced space label beside a swatch or gradient bar.
-    private var interpolationView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(heading)
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
+    /// A monospaced space label beside its resolved swatch or gradient.
+    private func interpolationRow(_ bar: InterpolationBar) -> some View {
+        LabeledContent {
+            barShape(bar.colors)
+        } label: {
+            Text(bar.space)
+                .font(.system(.footnote, design: .monospaced))
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 4)
-            ForEach(bars) { bar in
-                HStack(spacing: 12) {
-                    Text(bar.space)
-                        .font(.system(.footnote, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 74, alignment: .leading)
-                    barShape(bar.colors)
-                }
-            }
         }
+        .labeledContentStyle(.interpolation)
     }
 
     /// A single swatch (mix mode) or a left-to-right gradient (gradient mode) through the sampled stops.
     private func barShape(_ colors: [Color]) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 8)
+        let shape = RoundedRectangle(cornerRadius: 7)
         return Group {
             if colors.count == 1 {
-                shape.fill(colors[0])
+                shape.fill(colors.first ?? .clear)
             } else {
                 shape.fill(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing))
             }
         }
-        .frame(height: 34)
+        .frame(height: 30)
         .overlay(shape.strokeBorder(.primary.opacity(0.12)))
     }
 
     private var heading: String {
         switch mode {
         case .stats: ""
-        case .mix: "color-mix() · \(percent)% / \(100 - percent)% by interpolation space"
+        case .mix: "\(percent)% / \(100 - percent)% by interpolation space"
         case .gradient: "Gradients by interpolation space"
+        }
+    }
+
+    /// A qualitative label for the ΔE₀₀ magnitude.
+    private func deltaEDescription(_ deltaE: Double) -> String {
+        switch deltaE {
+        case ..<1: "Imperceptible"
+        case ..<2: "Barely perceptible"
+        case ..<10: "Perceptible"
+        case ..<50: "Distinct"
+        default: "Very distinct"
         }
     }
 
@@ -168,7 +195,7 @@ struct DuoView: View {
             }
         }
 
-        let resolved = await renderer.resolve(requests)
+        let resolved = await WebColorRenderer.shared.resolve(requests)
         guard resolved.count == requests.count else { return }
 
         bars = Self.interpolationSpaces.enumerated().map { index, space in
@@ -178,127 +205,111 @@ struct DuoView: View {
     }
 }
 
-/// Native readout of the perceptual difference (ΔE₀₀) and WCAG contrast between the duo's two colors.
-private struct MetricsView: View {
+/// Lays an interpolation row out as a fixed label column beside a bar that takes the remaining width.
+private struct InterpolationLabeledContentStyle: LabeledContentStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 12) {
+            configuration.label
+                .frame(width: 74, alignment: .leading)
+            configuration.content
+        }
+    }
+}
+
+private extension LabeledContentStyle where Self == InterpolationLabeledContentStyle {
+    static var interpolation: Self { Self() }
+}
+
+/// The WCAG readout: the measured ratio, live text samples, and each threshold's required ratio.
+private struct ContrastSection: View {
 
     let first: Color
     let second: Color
-    let deltaE: Double
     let contrast: Double
 
     var body: some View {
-        VStack(spacing: 16) {
-            deltaECard
-            contrastCard
-        }
-    }
-
-    private var deltaECard: some View {
-        card("Perceptual Difference", systemImage: "eye") {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(deltaE, format: .number.precision(.fractionLength(1)))
-                    .font(.system(size: 64, weight: .bold, design: .rounded))
+        Section("Contrast") {
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(contrast, format: .number.precision(.fractionLength(2)))
+                    .font(.system(.largeTitle, design: .rounded).weight(.bold))
                     .monospacedDigit()
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("ΔE₀₀")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(deltaEDescription)
-                        .font(.title3.weight(.medium))
-                }
+                Text(verbatim: ":1")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Text(highestGrade)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
+            HStack(spacing: 12) {
+                sample(text: first, on: second)
+                sample(text: second, on: first)
+            }
+            .listRowSeparator(.hidden)
+            requirements
         }
     }
 
-    private var contrastCard: some View {
-        card("Contrast", systemImage: "circle.righthalf.filled", fill: true) {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(contrast, format: .number.precision(.fractionLength(2)))
-                        .font(.system(size: 52, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                    Text(": 1")
-                        .font(.title.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-                HStack(spacing: 12) {
-                    sample(text: first, on: second)
-                    sample(text: second, on: first)
-                }
-                Spacer(minLength: 0)
-                wcagGrid
-            }
+    /// The strongest WCAG 2.1 grade the ratio reaches, so the headline number has a plain-language peer.
+    private var highestGrade: String {
+        switch contrast {
+        case 7...: "AAA for all text"
+        case 4.5...: "AA for all text"
+        case 3...: "AA for large text"
+        default: "Below AA"
         }
     }
 
     /// A live preview of one color's text on the other as its background.
     private func sample(text textColor: Color, on background: Color) -> some View {
         Text("Aa")
-            .font(.system(.title, design: .rounded).weight(.semibold))
+            .font(.system(.title3, design: .rounded).weight(.semibold))
             .foregroundStyle(textColor)
             .frame(maxWidth: .infinity)
-            .frame(height: 64)
-            .background(background, in: .rect(cornerRadius: 12))
+            .frame(height: 48)
+            .background(background, in: .rect(cornerRadius: 10))
     }
 
-    private var wcagGrid: some View {
-        Grid(horizontalSpacing: 20, verticalSpacing: 10) {
+    private var requirements: some View {
+        Grid(horizontalSpacing: 16, verticalSpacing: 10) {
             GridRow {
                 Color.clear.frame(height: 0).gridColumnAlignment(.leading)
-                Text("AA").gridColumnAlignment(.center)
-                Text("AAA").gridColumnAlignment(.center)
+                Text("AA").gridColumnAlignment(.trailing)
+                Text("AAA").gridColumnAlignment(.trailing)
             }
-            .font(.subheadline.weight(.bold))
+            .font(.caption.weight(.bold))
             .foregroundStyle(.secondary)
-            gridRow("Normal text", aa: contrast >= 4.5, aaa: contrast >= 7)
-            gridRow("Large text", aa: contrast >= 3, aaa: contrast >= 4.5)
-            GridRow {
-                Text("UI & graphics").font(.body)
-                badge(contrast >= 3)
-                Text("—").font(.title3).foregroundStyle(.tertiary)
+            requirement("Normal text", aa: 4.5, aaa: 7)
+            requirement("Large text", aa: 3, aaa: 4.5)
+            requirement("UI & graphics", aa: 3, aaa: nil)
+        }
+    }
+
+    private func requirement(_ label: String, aa: Double, aaa: Double?) -> some View {
+        GridRow {
+            Text(label).font(.callout)
+            target(aa, label: label, grade: "AA")
+            if let aaa {
+                target(aaa, label: label, grade: "AAA")
+            } else {
+                Text(verbatim: "—").foregroundStyle(.tertiary)
             }
         }
     }
 
-    private func gridRow(_ label: String, aa: Bool, aaa: Bool) -> some View {
-        GridRow {
-            Text(label).font(.body)
-            badge(aa)
-            badge(aaa)
+    /// One threshold: its required ratio, marked pass or fail against the measured contrast.
+    private func target(_ ratio: Double, label: String, grade: String) -> some View {
+        let passes = contrast >= ratio
+        return HStack(spacing: 4) {
+            Image(systemName: passes ? "checkmark.circle.fill" : "xmark.circle.fill")
+            Text(ratio, format: .number.precision(.fractionLength(1)))
+                .monospacedDigit()
         }
-    }
-
-    /// A titled, filled container. `fill` lets the card expand to consume available height.
-    private func card<Content: View>(_ title: String, systemImage: String, fill: Bool = false, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label(title, systemImage: systemImage)
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            content()
-        }
-        .frame(maxWidth: .infinity, maxHeight: fill ? .infinity : nil, alignment: .topLeading)
-        .padding(20)
-        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 16))
-    }
-
-    /// WCAG 2.1 pass/fail glyph for one threshold.
-    private func badge(_ pass: Bool) -> some View {
-        Image(systemName: pass ? "checkmark.circle.fill" : "xmark.circle.fill")
-            .font(.title3)
-            .foregroundStyle(pass ? Color.green : Color.red.opacity(0.8))
-            .accessibilityLabel(pass ? "Pass" : "Fail")
-    }
-
-    /// A qualitative label for the ΔE₀₀ magnitude.
-    private var deltaEDescription: String {
-        switch deltaE {
-        case ..<1: "Imperceptible"
-        case ..<2: "Barely perceptible"
-        case ..<10: "Perceptible"
-        case ..<50: "Distinct"
-        default: "Very distinct"
-        }
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(passes ? Color.green : Color.red.opacity(0.8))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(grade), needs \(ratio.formatted()) to 1")
+        .accessibilityValue(passes ? "Pass" : "Fail")
     }
 }
 

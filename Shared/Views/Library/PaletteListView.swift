@@ -67,16 +67,9 @@ struct PaletteListView: View {
                 #if !os(macOS)
                 if !isAssistiveAccessEnabled {
                     // App-level links live on the root screen, not inside each palette editor.
+                    // (On macOS they live in the Help menu instead.)
                     ToolbarOverflowMenu {
-                        Link(destination: URL(string: "https://www.256arts.com/")!) {
-                            Label("Developer Website", systemImage: "safari")
-                        }
-                        Link(destination: URL(string: "https://www.256arts.com/joincommunity/")!) {
-                            Label("Join Community", systemImage: "bubble.left.and.bubble.right")
-                        }
-                        Link(destination: URL(string: "https://github.com/256Arts/Palette-3D")!) {
-                            Label("Contribute on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-                        }
+                        AppLinks()
                     }
                 }
                 #endif

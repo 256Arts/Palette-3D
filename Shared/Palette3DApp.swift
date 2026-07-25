@@ -29,6 +29,13 @@ struct Palette3DApp: App {
                 }
         }
         .modelContainer(container)
+        #if os(macOS)
+        .commands {
+            CommandGroup(replacing: .help) {
+                AppLinks()
+            }
+        }
+        #endif
 
         #if os(visionOS)
         WindowGroup("Display", id: "display", for: PersistentIdentifier.self) { $paletteID in

@@ -15,6 +15,11 @@ struct ColorDetailsView: View {
     /// The gamut whose color formats are listed. Defaults to the tightest gamut that contains the color.
     @State private var gamut: Gamut
 
+    /// Collapsed by default whenever there are pins — the point of pinning is not to scroll past the rest.
+    @State private var showingAllFormats = false
+
+    @AppStorage(PinnedColorFormats.storageKey) private var pinnedFormats = PinnedColorFormats()
+
     @Environment(\.dismiss) private var dismiss
 
     init(color: Binding<PaletteColor>, colorSpace: ColorSpace, onDelete: @escaping () -> Void) {
@@ -24,19 +29,10 @@ struct ColorDetailsView: View {
         _gamut = State(initialValue: Gamut.containing([color.wrappedValue], colorSpace: colorSpace))
     }
 
-    private struct Metric: Identifiable {
-        let name: String
-        let value: String
-        var id: String { name }
-    }
-
-    /// The color expressed in every representation belonging to the selected gamut. CSS color-space rows are
-    /// re-derived from the realized P3 value so each is a true conversion, not the same fractions reinterpreted.
-    private var metrics: [Metric] {
-        gamut.representations.map { representation in
-            Metric(name: representation.name,
-                   value: color.string(representation, colorSpace: colorSpace, gamut: gamut))
-        }
+    /// The formats of the selected gamut. CSS color-space rows are re-derived from the realized P3 value
+    /// so each is a true conversion, not the same fractions reinterpreted.
+    private var gamutFormats: [ColorFormat] {
+        gamut.representations.map { ColorFormat(gamut: gamut, representation: $0) }
     }
 
     private var nameBinding: Binding<String> {
@@ -79,17 +75,9 @@ struct ColorDetailsView: View {
                                 .labelsHidden()
                         }
 
-                        VStack(spacing: 16) {
-                            gamutPicker
+                        formats
 
-                            VStack(spacing: 0) {
-                                ForEach(Array(metrics.enumerated()), id: \.element.id) { index, metric in
-                                    if index > 0 { Divider() }
-                                    metricRow(metric)
-                                }
-                            }
-                            .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
-                        }
+                        ShadesView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true))
 
                         Button("Delete Color", systemImage: "trash", role: .destructive) {
                             onDelete()
@@ -117,6 +105,39 @@ struct ColorDetailsView: View {
         }
     }
 
+    /// The pinned formats first, then the full gamut-by-gamut list — collapsed behind a disclosure once
+    /// anything is pinned, and shown outright while nothing is (there is nothing to collapse away from yet).
+    private var formats: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if pinnedFormats.formats.isEmpty {
+                allFormats
+            } else {
+                formatRows(pinnedFormats.formats, name: \.qualifiedName)
+                DisclosureGroup("All Formats", isExpanded: $showingAllFormats) {
+                    allFormats
+                        .padding(.top, 12)
+                }
+            }
+        }
+    }
+
+    private var allFormats: some View {
+        VStack(spacing: 16) {
+            gamutPicker
+            formatRows(gamutFormats, name: \.name)
+        }
+    }
+
+    private func formatRows(_ formats: [ColorFormat], name: KeyPath<ColorFormat, String>) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(formats.enumerated()), id: \.element.id) { index, format in
+                if index > 0 { Divider() }
+                formatRow(format, name: format[keyPath: name])
+            }
+        }
+        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
+    }
+
     /// A segmented picker over the gamuts. A ⚠ suffix marks a gamut that clamps the color — a Unicode glyph
     /// rather than an SF Symbol image, which a segmented Picker won't render inline.
     private var gamutPicker: some View {
@@ -129,16 +150,26 @@ struct ColorDetailsView: View {
         .pickerStyle(.segmented)
     }
 
-    private func metricRow(_ metric: Metric) -> some View {
-        HStack(spacing: 12) {
-            Text(metric.name)
-                .foregroundStyle(.secondary)
-                .frame(width: 90, alignment: .leading)
-            Text(metric.value)
+    private func formatRow(_ format: ColorFormat, name: String) -> some View {
+        let isClamped = format.gamut.clamps(color, colorSpace: colorSpace)
+        let isPinned = pinnedFormats.contains(format)
+        let value = format.string(color, colorSpace: colorSpace)
+
+        return HStack(spacing: 12) {
+            FormatLabel(name: name, isClamped: isClamped)
+                .foregroundStyle(isClamped ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                .accessibilityLabel(isClamped ? "\(name), clamped to fit this gamut" : name)
+                .frame(width: 110, alignment: .leading)
+            Text(value)
                 .monospaced()
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Button("Copy", systemImage: "doc.on.doc") { copy(metric.value) }
+            Button(isPinned ? "Unpin" : "Pin", systemImage: isPinned ? "pin.fill" : "pin") {
+                pinnedFormats.toggle(format)
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            Button("Copy", systemImage: "doc.on.doc") { copy(value) }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
         }
