@@ -15,9 +15,8 @@ struct ShadesView: View {
     /// The base color as a CSS literal, e.g. `oklch(...)` or `color(display-p3 ...)`.
     let css: String
 
-    /// Opens a shade's own details. Left `nil` where drilling in doesn't apply — the ramp is then
-    /// display-only, and each swatch is still draggable.
-    var onSelect: ((Color) -> Void)?
+    /// Opens a shade's own details.
+    let onSelect: (Color) -> Void
 
     @State private var ramps: [ShadeRamp] = []
 
@@ -43,7 +42,7 @@ struct ShadesView: View {
                 legend
             }
             .padding(12)
-            .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
+            .background(Color.groupedContent, in: .rect(cornerRadius: 12))
         }
         .task(id: css) { await load() }
     }
@@ -62,22 +61,16 @@ struct ShadesView: View {
         .overlay(shape.strokeBorder(.primary.opacity(0.12)))
     }
 
-    /// One step of the ramp — a button into its details where that applies, and otherwise the bare color.
-    /// Not a disabled button: `.plain` dims what it disables, which would wash out the very thing on show.
-    @ViewBuilder private func swatch(_ shade: Color, step: Double) -> some View {
-        if let onSelect {
-            Button {
-                onSelect(shade)
-            } label: {
-                shade.frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(name(ofStep: step))
-        } else {
-            shade
-                .frame(maxWidth: .infinity)
-                .accessibilityLabel(name(ofStep: step))
+    /// One step of the ramp, a button into its own details. `.plain` because a tinted style would paint
+    /// over the very thing on show.
+    private func swatch(_ shade: Color, step: Double) -> some View {
+        Button {
+            onSelect(shade)
+        } label: {
+            shade.frame(maxWidth: .infinity)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(name(ofStep: step))
     }
 
     /// The ramp is otherwise nine unnamed swatches, indistinguishable to VoiceOver.
@@ -124,6 +117,6 @@ struct ShadesView: View {
 }
 
 #Preview {
-    ShadesView(css: "oklch(0.7 0.15 30)")
+    ShadesView(css: "oklch(0.7 0.15 30)", onSelect: { _ in })
         .padding()
 }

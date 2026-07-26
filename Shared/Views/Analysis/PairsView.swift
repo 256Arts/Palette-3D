@@ -30,6 +30,12 @@ struct PairsView: View {
     /// The natively-drawable bars for the current inputs, one per interpolation space.
     @State private var bars: [InterpolationBar] = []
 
+    /// A mix opened for inspection. It belongs to no palette, so it presents with no Add.
+    @State private var inspected: InspectedColor?
+
+    /// Mixes are read back into the same space the rest of the app imports into.
+    private static let colorSpace = ColorSpace.okLch
+
     /// The CSS interpolation spaces used for the mix/gradient rows, perceptual-first.
     private static let interpolationSpaces = ["oklch", "oklab", "lch", "lab", "hsl", "hwb", "srgb", "srgb-linear", "xyz"]
     /// Stops sampled per gradient bar — enough for a smooth curve through the perceptual path.
@@ -65,6 +71,7 @@ struct PairsView: View {
                     .pickerStyle(.segmented)
                 }
             }
+            .inspectingColor($inspected, colorSpace: Self.colorSpace)
         }
     }
 
@@ -122,14 +129,31 @@ struct PairsView: View {
 
     /// A picked color as a CSS `color(display-p3 ...)` literal, preserving wide-gamut values.
     private func cssColor(_ color: Color) -> String {
-        guard let picked = PaletteColor(SystemColor(color), colorSpace: .okLch) else { return "black" }
-        return picked.cssString(colorSpace: .okLch, convertedToP3: true)
+        guard let picked = PaletteColor(SystemColor(color), colorSpace: Self.colorSpace) else { return "black" }
+        return picked.cssString(colorSpace: Self.colorSpace, convertedToP3: true)
+    }
+
+    /// The CSS that draws a gradient row. The stops on screen are sampled from `color-mix()` in the same
+    /// space, taking the same default `shorter hue` path, so this reproduces the bar rather than
+    /// approximating it. A gradient is the one thing here that isn't a color, so it's copied rather than
+    /// inspected — and it carries no direction, which is the caller's to decide, not the bar's.
+    private func cssGradient(_ space: String) -> String {
+        "linear-gradient(in \(space), \(cssColor(firstColor)), \(cssColor(secondColor)))"
     }
 
     /// A space label beside its resolved swatch or gradient.
     private func interpolationRow(_ bar: InterpolationBar) -> some View {
         LabeledContent {
-            barShape(bar.colors)
+            HStack(spacing: 12) {
+                barShape(bar.colors)
+                if mode == .gradient {
+                    Button("Copy CSS Gradient", systemImage: "doc.on.doc") {
+                        cssGradient(bar.space).copyToPasteboard()
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                }
+            }
         } label: {
             Text(bar.space)
                 .font(.headline)
@@ -138,18 +162,27 @@ struct PairsView: View {
         .labeledContentStyle(.interpolation)
     }
 
-    /// A single swatch (mix mode) or a left-to-right gradient (gradient mode) through the sampled stops.
-    private func barShape(_ colors: [Color]) -> some View {
+    /// A single mixed swatch, which taps into its own details, or a left-to-right gradient through the
+    /// sampled stops. A gradient's stops aren't tappable: every one of them is a mix ratio away on the
+    /// slider, and 24 hit targets per row would bury the bar in VoiceOver.
+    @ViewBuilder private func barShape(_ colors: [Color]) -> some View {
         let shape = RoundedRectangle(cornerRadius: 7)
-        return Group {
-            if colors.count == 1 {
-                shape.fill(colors.first ?? .clear)
-            } else {
-                shape.fill(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing))
+        if colors.count == 1, let only = colors.first {
+            Button {
+                inspected = InspectedColor(only, colorSpace: Self.colorSpace)
+            } label: {
+                shape.fill(only)
+                    .frame(height: 30)
+                    .overlay(shape.strokeBorder(.primary.opacity(0.12)))
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Mixed color")
+            .accessibilityAddTraits(.isButton)
+        } else {
+            shape.fill(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing))
+                .frame(height: 30)
+                .overlay(shape.strokeBorder(.primary.opacity(0.12)))
         }
-        .frame(height: 30)
-        .overlay(shape.strokeBorder(.primary.opacity(0.12)))
     }
 
     private var heading: String {

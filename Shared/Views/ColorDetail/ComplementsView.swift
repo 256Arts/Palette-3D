@@ -44,9 +44,8 @@ struct ComplementsView: View {
     /// The base color as a CSS literal, e.g. `oklch(...)` or `color(display-p3 ...)`.
     let css: String
 
-    /// Opens a complement's own details. Left `nil` where drilling in doesn't apply — the wheel is then
-    /// display-only, and each swatch is still draggable.
-    var onSelect: ((Color) -> Void)?
+    /// Opens a complement's own details.
+    let onSelect: (Color) -> Void
 
     /// How many colors to rotate to, beside the original. Persisted because it's a working preference:
     /// someone who designs in triads wants triads every time they open a color.
@@ -87,7 +86,7 @@ struct ComplementsView: View {
                 legend
             }
             .padding(12)
-            .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
+            .background(Color.groupedContent, in: .rect(cornerRadius: 12))
         }
         .task(id: requests) { await load() }
     }
@@ -133,22 +132,16 @@ struct ComplementsView: View {
         .overlay(shape.strokeBorder(.primary.opacity(0.12)))
     }
 
-    /// One rotation — a button into its details where that applies, and otherwise the bare color.
-    /// Not a disabled button: `.plain` dims what it disables, which would wash out the very thing on show.
-    @ViewBuilder private func swatch(_ complement: Complement) -> some View {
-        if let onSelect {
-            Button {
-                onSelect(complement.color)
-            } label: {
-                complement.color.frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(name(of: complement))
-        } else {
-            complement.color
-                .frame(maxWidth: .infinity)
-                .accessibilityLabel(name(of: complement))
+    /// One rotation, a button into its own details. `.plain` because a tinted style would paint over the
+    /// very thing on show.
+    private func swatch(_ complement: Complement) -> some View {
+        Button {
+            onSelect(complement.color)
+        } label: {
+            complement.color.frame(maxWidth: .infinity)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(name(of: complement))
     }
 
     /// The wheel is otherwise a row of unnamed swatches, indistinguishable to VoiceOver.
@@ -189,6 +182,6 @@ struct ComplementsView: View {
 }
 
 #Preview {
-    ComplementsView(css: "oklch(0.7 0.15 30)")
+    ComplementsView(css: "oklch(0.7 0.15 30)", onSelect: { _ in })
         .padding()
 }

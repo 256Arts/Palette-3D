@@ -1,10 +1,5 @@
 import PaletteKit
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#elseif canImport(AppKit)
-import AppKit
-#endif
 
 struct ColorDetailsView: View {
 
@@ -13,8 +8,8 @@ struct ColorDetailsView: View {
     enum Provenance {
         /// A row in a palette: named, deletable, confirmed with Done.
         case palette
-        /// Opened from a shade or complement ramp — no palette row behind it, so it closes rather than
-        /// confirms, offers to be added, and its own ramps don't drill further.
+        /// Opened from a shade ramp, a complement wheel, or a pair's mix — no palette row behind it, so it
+        /// closes rather than confirms, and offers to be added.
         case derived
         /// The Color tab's scratch color. It belongs to no palette and is never dismissed.
         case scratch
@@ -30,14 +25,7 @@ struct ColorDetailsView: View {
     /// Appends a color to the palette. Passed down to the derived-color sheet, which is where it applies.
     var onAdd: ((PaletteColor) -> Void)?
 
-    /// A color opened from one of the ramps. `PaletteColor`'s own id is derived from its value, so editing
-    /// it would change its identity and re-present the sheet; this carries a stable one instead.
-    private struct DerivedColor: Identifiable {
-        var color: PaletteColor
-        let id = UUID()
-    }
-
-    @State private var inspected: DerivedColor?
+    @State private var inspected: InspectedColor?
 
     /// The gamut whose color formats are listed. Defaults to the tightest gamut that contains the color.
     @State private var gamut: Gamut
@@ -123,10 +111,10 @@ struct ColorDetailsView: View {
                         formats
 
                         ShadesView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
-                                   onSelect: derivedSelection)
+                                   onSelect: inspect)
 
                         ComplementsView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
-                                        onSelect: derivedSelection)
+                                        onSelect: inspect)
 
                         if let onDelete {
                             Button("Delete Color", systemImage: "trash", role: .destructive) {
@@ -139,6 +127,9 @@ struct ColorDetailsView: View {
                     .padding()
                 }
             }
+            // This screen builds its own containers rather than using a `List`, so it has to supply the
+            // grouped pair itself: the page is the gray, the boxes on it are the white.
+            .background(Color.groupedBackground)
             .ignoresSafeArea(edges: .top)
             .navigationTitle(color.name ?? "Color")
             #if !os(macOS)
@@ -169,32 +160,14 @@ struct ColorDetailsView: View {
                     ShareLink(item: color.cssString(colorSpace: colorSpace, convertedToP3: false))
                 }
             }
-            .sheet(item: $inspected) { derived in
-                ColorDetailsView(color: binding(to: derived),
-                                 colorSpace: colorSpace,
-                                 provenance: .derived,
-                                 onAdd: onAdd)
-            }
+            // Every provenance drills, `.derived` included: a shade of a shade is as worth inspecting as
+            // the shade was, and the sheets simply stack.
+            .inspectingColor($inspected, colorSpace: colorSpace, onAdd: onAdd)
         }
     }
 
-    /// Drilling into a ramp swatch — from a palette color or the scratch color, but not from a derived
-    /// one, whose own ramps deliberately don't drill further.
-    private var derivedSelection: ((Color) -> Void)? {
-        guard provenance != .derived else { return nil }
-        return inspect
-    }
-
     private func inspect(_ derived: Color) {
-        guard let picked = PaletteColor(SystemColor(derived), colorSpace: colorSpace) else { return }
-        inspected = DerivedColor(color: picked)
-    }
-
-    /// Edits write back to the presented color, and reads fall back to the value the sheet was handed —
-    /// the state is already `nil` while the sheet animates away, and reading it unguarded would trap.
-    private func binding(to derived: DerivedColor) -> Binding<PaletteColor> {
-        Binding(get: { inspected?.color ?? derived.color },
-                set: { inspected?.color = $0 })
+        inspected = InspectedColor(derived, colorSpace: colorSpace)
     }
 
     /// The pinned formats first, then the full gamut-by-gamut list — collapsed behind a disclosure once
@@ -227,7 +200,7 @@ struct ColorDetailsView: View {
                 formatRow(format, name: format[keyPath: name])
             }
         }
-        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
+        .background(Color.groupedContent, in: .rect(cornerRadius: 12))
     }
 
     /// A segmented picker over the gamuts. A ⚠ suffix marks a gamut that clamps the color — a Unicode glyph
@@ -256,7 +229,7 @@ struct ColorDetailsView: View {
                 .monospaced()
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Button("Copy", systemImage: "doc.on.doc") { copy(value) }
+            Button("Copy", systemImage: "doc.on.doc") { value.copyToPasteboard() }
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
             Menu {
@@ -276,14 +249,6 @@ struct ColorDetailsView: View {
         .padding(.vertical, 10)
     }
 
-    private func copy(_ string: String) {
-        #if canImport(AppKit)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
-        #else
-        UIPasteboard.general.string = string
-        #endif
-    }
 }
 
 #Preview {
