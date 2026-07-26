@@ -112,6 +112,8 @@ struct ColorDetailsView: View {
 
                         formats
 
+                        ContrastView(color: color, colorSpace: colorSpace)
+
                         ShadesView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
                                    onSelect: inspect)
 

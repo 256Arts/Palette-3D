@@ -268,7 +268,7 @@ private struct ContrastSection: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 8)
-                Text(highestGrade)
+                Text(ColorMetrics.wcagGrade(contrast))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -278,16 +278,6 @@ private struct ContrastSection: View {
             }
             .listRowSeparator(.hidden)
             requirements
-        }
-    }
-
-    /// The strongest WCAG 2.1 grade the ratio reaches, so the headline number has a plain-language peer.
-    private var highestGrade: String {
-        switch contrast {
-        case 7...: "AAA for all text"
-        case 4.5...: "AA for all text"
-        case 3...: "AA for large text"
-        default: "Below AA"
         }
     }
 
