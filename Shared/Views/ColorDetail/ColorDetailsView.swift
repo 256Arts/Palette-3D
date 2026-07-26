@@ -112,13 +112,15 @@ struct ColorDetailsView: View {
 
                         formats
 
-                        ContrastView(color: color, colorSpace: colorSpace)
-
                         ShadesView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
                                    onSelect: inspect)
 
                         ComplementsView(css: color.cssString(colorSpace: colorSpace, convertedToP3: true),
                                         onSelect: inspect)
+
+                        // Last, under the ramps: the formats and the ramps are what a color is, where this
+                        // is how it behaves against something else — a footnote to the color, not a part of it.
+                        ContrastView(color: color, colorSpace: colorSpace)
 
                         if let onDelete {
                             Button("Delete Color", systemImage: "trash", role: .destructive) {

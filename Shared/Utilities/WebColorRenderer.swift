@@ -11,23 +11,25 @@ final class WebColorRenderer: NSObject, WKNavigationDelegate {
 
     /// Whether the bootstrap page has finished loading and `window.resolveColors` is callable.
     private var isReady = false
-    /// Callers awaiting the first load; all resumed together in `didFinish`.
+    /// Callers awaiting the load; all resumed together in `didFinish`.
     private var waiters: [CheckedContinuation<Void, Never>] = []
+    /// Consecutive failed loads. A page built from a string has nothing to fetch, so it shouldn't fail at
+    /// all — but a caller suspended on one that never lands would wait forever, so the count is capped.
+    private var failures = 0
+    private static let maximumFailures = 2
 
     override init() {
         super.init()
         webView.navigationDelegate = self
-        webView.loadHTMLString(Self.bootstrapHTML, baseURL: nil)
+        bootstrap()
     }
 
     /// Resolves each CSS color string to a Display-P3 `Color`. Order matches the input; empty on failure.
     func resolve(_ cssColors: [String]) async -> [Color] {
-        guard !cssColors.isEmpty else { return [] }
-        await waitUntilReady()
-
-        guard let argument = try? String(decoding: JSONEncoder().encode(cssColors), as: UTF8.self),
-              let result = try? await webView.evaluateJavaScript("window.resolveColors(\(argument))"),
-              let rows = result as? [[Double]], rows.count == cssColors.count
+        guard !cssColors.isEmpty,
+              let argument = try? String(decoding: JSONEncoder().encode(cssColors), as: UTF8.self),
+              let rows = await evaluate("window.resolveColors(\(argument))") as? [[Double]],
+              rows.count == cssColors.count
         else { return [] }
 
         return rows.map { Color(.displayP3, red: $0[0], green: $0[1], blue: $0[2]) }
@@ -37,14 +39,26 @@ final class WebColorRenderer: NSObject, WKNavigationDelegate {
     /// The batch call can't report that: the canvas silently keeps its previous fill for anything it
     /// fails to parse, so unparseable text comes back as black rather than as a failure.
     func resolve(_ cssColor: String) async -> Color? {
-        await waitUntilReady()
-
         guard let argument = try? String(decoding: JSONEncoder().encode(cssColor), as: UTF8.self),
-              let result = try? await webView.evaluateJavaScript("window.resolveColor(\(argument))"),
-              let channels = result as? [Double], channels.count == 3
+              let channels = await evaluate("window.resolveColor(\(argument))") as? [Double],
+              channels.count == 3
         else { return nil }
 
         return Color(.displayP3, red: channels[0], green: channels[1], blue: channels[2])
+    }
+
+    /// Evaluates once the page is up, and once more if that throws.
+    ///
+    /// The second attempt is the point: WebKit reclaims the content process of a backgrounded app, and the
+    /// call that discovers the page is gone is also the one that triggers rebuilding it. Without a retry,
+    /// that caller is the one whose ramp stays empty — with nothing on screen to say why, or to ask again.
+    private func evaluate(_ javaScript: String) async -> Any? {
+        for attempt in 0..<2 {
+            await waitUntilReady()
+            if let result = try? await webView.evaluateJavaScript(javaScript) { return result }
+            if attempt == 0 { reload() }
+        }
+        return nil
     }
 
     private func waitUntilReady() async {
@@ -52,8 +66,49 @@ final class WebColorRenderer: NSObject, WKNavigationDelegate {
         await withCheckedContinuation { waiters.append($0) }
     }
 
+    private func bootstrap() {
+        webView.loadHTMLString(Self.bootstrapHTML, baseURL: nil)
+    }
+
+    /// Drops the page and builds it again. Anyone waiting stays waiting — the new load will resume them.
+    private func reload() {
+        isReady = false
+        bootstrap()
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         isReady = true
+        failures = 0
+        resumeWaiters()
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        loadFailed()
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        loadFailed()
+    }
+
+    /// WebKit reclaims a backgrounded app's content process: the web view outlives the page, and
+    /// `window.resolveColors` goes with it. Left alone, every later call throws and every ramp, wheel, and
+    /// pair bar comes back empty until the app is relaunched — so the page is rebuilt the moment it's lost.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        reload()
+    }
+
+    /// Retries a failed load, then gives up and lets the callers through: an empty ramp is recoverable —
+    /// the next `.task` asks again — where a suspended one never is.
+    private func loadFailed() {
+        failures += 1
+        if failures <= Self.maximumFailures {
+            bootstrap()
+        } else {
+            resumeWaiters()
+        }
+    }
+
+    private func resumeWaiters() {
         waiters.forEach { $0.resume() }
         waiters.removeAll()
     }
