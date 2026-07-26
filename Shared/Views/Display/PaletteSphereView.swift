@@ -18,9 +18,12 @@ struct PaletteSphereView: View {
                 content.remove(first)
             }
             for (index, pColor) in colors.enumerated() {
+                // Unlit, so a swatch is its own color from every angle. A lit material would shade each
+                // sphere by where the scene's light happens to sit — orbit round and half the graph falls
+                // into a dark back side, and even face-on the color shown isn't the color measured.
                 let model = ModelEntity(
                     mesh: .generateSphere(radius: Float(0.1 * Self.scale)),
-                    materials: [SimpleMaterial(color: SystemColor(pColor.color(colorSpace: colorSpace)), isMetallic: false)])
+                    materials: [UnlitMaterial(color: SystemColor(pColor.color(colorSpace: colorSpace)))])
                 model.name = String(index)
                 // Plotted as-is: the sphere's surface is Display P3, so a palette pulled below 100%
                 // chroma should read as a smaller sphere, and one pushed past it should break out.
