@@ -1,19 +1,19 @@
 import PaletteKit
 import SwiftUI
 
-/// A swatch that opens its color's full details.
+/// Wraps a view as a button into its color's full details.
 ///
 /// It stands in for a `ColorPicker` wherever the color deserves more than a picker: the sheet holds a
-/// picker of its own, plus every format, the ramps, and the image/pasteboard imports — and edits made
-/// there write straight back through the binding, so nothing is lost by the swap.
-struct ColorDetailsButton: View {
+/// picker of its own, plus every format, the contrast readout, the ramps, and the image/pasteboard
+/// imports — and edits made there write straight back through the binding, which is what makes this a
+/// replacement rather than a read-only preview. The label is the caller's, since a swatch's shape belongs
+/// to the screen it sits on.
+struct ColorDetailsButton<Label: View>: View {
 
     let title: LocalizedStringKey
     @Binding var color: Color
     let colorSpace: ColorSpace
-
-    /// The swatch, sized like a `ColorPicker`'s, inside a full-size tap target.
-    private static let diameter: CGFloat = 28
+    @ViewBuilder let label: Label
 
     @State private var details: InspectedColor?
 
@@ -21,13 +21,7 @@ struct ColorDetailsButton: View {
         Button {
             details = InspectedColor(color, colorSpace: colorSpace)
         } label: {
-            Circle()
-                .fill(color)
-                .frame(width: Self.diameter, height: Self.diameter)
-                .overlay(Circle().strokeBorder(.white, lineWidth: 2))
-                .shadow(radius: 2)
-                .frame(width: 44, height: 44)
-                .contentShape(.circle)
+            label
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(title))
@@ -43,5 +37,8 @@ struct ColorDetailsButton: View {
 
 #Preview {
     @Previewable @State var color = Color.purple
-    ColorDetailsButton(title: "Color", color: $color, colorSpace: .okLch)
+    ColorDetailsButton(title: "Color", color: $color, colorSpace: .okLch) {
+        color.frame(height: 64)
+    }
+    .padding()
 }

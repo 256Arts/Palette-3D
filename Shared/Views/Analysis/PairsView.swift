@@ -75,22 +75,16 @@ struct PairsView: View {
         }
     }
 
-    /// The mix capsule, or the bare pair of swatches when the mix ratio doesn't apply. The capsule is its
-    /// own shape, so it drops the row's background rather than sitting in a second container.
-    @ViewBuilder private var colorControls: some View {
-        if mode == .mix {
-            MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix, colorSpace: Self.colorSpace)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-        } else {
-            // Placed at opposite ends, matching where each color sits on the mix capsule — which is also
-            // what makes the labels redundant.
-            HStack {
-                ColorDetailsButton(title: "First Color", color: $firstColor, colorSpace: Self.colorSpace)
-                Spacer()
-                ColorDetailsButton(title: "Second Color", color: $secondColor, colorSpace: Self.colorSpace)
-            }
-        }
+    /// The pair itself — the same capsule in every mode, gaining a movable split only where a mix ratio
+    /// means something. It's its own shape, so it drops the row's background rather than sitting in a
+    /// second container.
+    private var colorControls: some View {
+        ColorPairBar(firstColor: $firstColor,
+                     secondColor: $secondColor,
+                     mix: mode == .mix ? $mix : nil,
+                     colorSpace: Self.colorSpace)
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
     }
 
     private var percent: Int { Int(mix.rounded()) }
