@@ -3,7 +3,9 @@ import SwiftUI
 
 /// The app's root: the palette library, the two-color comparison, and one scratch color to inspect.
 ///
-/// Each tab owns its own `NavigationStack`, so the tab bar stays put while a palette pushes its editor.
+/// Each tab owns its own `NavigationStack`. The tab bar stays a tab bar at every size — these are three
+/// peer destinations, not a hierarchy, and the sidebar adaptation would hand the editor a second column
+/// it has no use for — and it hides once a palette pushes its editor, which wants the full width.
 struct MainView: View {
 
     /// Named rather than inferred from position so `onExternalImport` can name the tab it needs forward.
@@ -31,9 +33,19 @@ struct MainView: View {
                 ColorDetailsView(color: $scratchColor, colorSpace: .okLch, provenance: .scratch)
             }
         }
-        // Three tabs is a tab bar on iPhone, but a sidebar is the native shape for the same three
-        // destinations on macOS and iPad.
-        .tabViewStyle(.sidebarAdaptable)
+    }
+}
+
+extension View {
+
+    /// Drops ``MainView``'s tab bar for a screen pushed on top of a tab. `.tabBar` doesn't exist on
+    /// macOS, where the same three tabs are already window-level and nothing covers them.
+    func hidingTabBar() -> some View {
+        #if os(macOS)
+        self
+        #else
+        toolbar(.hidden, for: .tabBar)
+        #endif
     }
 }
 

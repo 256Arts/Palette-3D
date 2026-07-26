@@ -87,7 +87,6 @@ struct DisplayView: View {
                 PaletteSphereView(
                     colors: paletteColors,
                     colorSpace: generator.parameters.colorSpace,
-                    chromaMultiplier: generator.parameters.chromaMultiplier,
                     onSelect: { editingColorIndex = $0 })
             case .text:
                 TextEditor(text: $paletteText)

@@ -41,7 +41,9 @@ struct ParametersView: View {
                         Stepper(
                             "Chroma",
                             value: $generator.parameters.chromaMultiplier,
-                            in: 0...1,
+                            // Past 100% the palette leaves P3 on purpose. Rec2020 is covered by 117%,
+                            // so 150% is all the headroom any display can use.
+                            in: 0...1.5,
                             step: 0.01)
                         .labelsHidden()
                     }

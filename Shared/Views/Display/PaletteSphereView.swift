@@ -6,7 +6,6 @@ struct PaletteSphereView: View {
 
     let colors: [PaletteColor]
     let colorSpace: ColorSpace
-    let chromaMultiplier: Double
 
     /// Called with the tapped color's index. When non-nil, spheres get collision + input components so they can be hit-tested.
     var onSelect: ((Int) -> Void)? = nil
@@ -23,10 +22,12 @@ struct PaletteSphereView: View {
                     mesh: .generateSphere(radius: Float(0.1 * Self.scale)),
                     materials: [SimpleMaterial(color: SystemColor(pColor.color(colorSpace: colorSpace)), isMetallic: false)])
                 model.name = String(index)
+                // Plotted as-is: the sphere's surface is Display P3, so a palette pulled below 100%
+                // chroma should read as a smaller sphere, and one pushed past it should break out.
                 model.position = SIMD3(
-                    Float((pColor.visualizedX * Self.scale) / chromaMultiplier),
+                    Float(pColor.visualizedX * Self.scale),
                     Float(pColor.visualizedY * Self.scale),
-                    Float((pColor.visualizedZ * Self.scale) / chromaMultiplier))
+                    Float(pColor.visualizedZ * Self.scale))
                 if onSelect != nil {
                     model.generateCollisionShapes(recursive: false)
                     model.components.set(InputTargetComponent())

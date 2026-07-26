@@ -16,11 +16,7 @@ struct VolumetricDisplayView: View {
 
     var body: some View {
         if let palette {
-            let parameters = palette.parameters ?? .init()
-            PaletteSphereView(
-                colors: palette.colors,
-                colorSpace: parameters.colorSpace,
-                chromaMultiplier: parameters.chromaMultiplier)
+            PaletteSphereView(colors: palette.colors, colorSpace: palette.colorSpace)
         } else {
             ContentUnavailableView("No Palette", systemImage: "circle.dashed")
         }

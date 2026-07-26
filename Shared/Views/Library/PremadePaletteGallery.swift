@@ -18,6 +18,17 @@ struct PremadePaletteGallery: View {
     private static let cardWidth: CGFloat = 240
     private static let stripHeight: CGFloat = 56
 
+    /// The gallery's row is clear, so a card sits straight on the list's *grouped* background — and
+    /// `.background.secondary` is that exact gray in light mode, leaving the name bar invisible. A card
+    /// is really a list row lying on its side, so it takes the row fill and reads in both appearances.
+    private static var cardBackground: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .secondarySystemGroupedBackground)
+        #else
+        Color(nsColor: .controlBackgroundColor)
+        #endif
+    }
+
     /// Resolved once, not read from `body`: unlike `premadePalettes`, the handpicked list isn't memoized
     /// and mints a fresh `id` per palette on every call, which would churn `ForEach`'s identity.
     @State private var palettes: [PaletteKit.Palette] = []
@@ -67,7 +78,7 @@ struct PremadePaletteGallery: View {
             .padding(.vertical, 8)
         }
         .frame(width: Self.cardWidth)
-        .background(.background.secondary)
+        .background(Self.cardBackground)
         .clipShape(.rect(cornerRadius: 12))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)

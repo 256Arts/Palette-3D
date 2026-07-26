@@ -52,7 +52,10 @@ struct PaletteListView: View {
             }
             .navigationTitle("Palettes")
             .navigationDestination(for: Palette.self) { palette in
+                // The editor wants the whole window for the sphere and its inspector; the tab bar is
+                // one tap away behind Back.
                 PaletteEditorView(palette: palette)
+                    .hidingTabBar()
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
