@@ -16,4 +16,14 @@ extension String {
         UIPasteboard.general.string = self
         #endif
     }
+
+    /// The pasteboard's plain text, if it holds any. Reading it may ask the user to allow the paste, so
+    /// only an explicit Paste command should call it.
+    static var pasteboardText: String? {
+        #if canImport(AppKit)
+        NSPasteboard.general.string(forType: .string)
+        #else
+        UIPasteboard.general.string
+        #endif
+    }
 }

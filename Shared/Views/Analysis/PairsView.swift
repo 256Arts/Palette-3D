@@ -75,27 +75,22 @@ struct PairsView: View {
         }
     }
 
-    /// The mix capsule, or the bare pair of pickers when the mix ratio doesn't apply. The capsule is its
+    /// The mix capsule, or the bare pair of swatches when the mix ratio doesn't apply. The capsule is its
     /// own shape, so it drops the row's background rather than sitting in a second container.
     @ViewBuilder private var colorControls: some View {
         if mode == .mix {
-            MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix)
+            MixSlider(firstColor: $firstColor, secondColor: $secondColor, mix: $mix, colorSpace: Self.colorSpace)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
         } else {
             // Placed at opposite ends, matching where each color sits on the mix capsule — which is also
             // what makes the labels redundant.
             HStack {
-                picker("First Color", selection: $firstColor)
+                ColorDetailsButton(title: "First Color", color: $firstColor, colorSpace: Self.colorSpace)
                 Spacer()
-                picker("Second Color", selection: $secondColor)
+                ColorDetailsButton(title: "Second Color", color: $secondColor, colorSpace: Self.colorSpace)
             }
         }
-    }
-
-    private func picker(_ title: LocalizedStringKey, selection: Binding<Color>) -> some View {
-        ColorPicker(title, selection: selection, supportsOpacity: false)
-            .labelsHidden()
     }
 
     private var percent: Int { Int(mix.rounded()) }

@@ -27,6 +27,8 @@ struct ColorDetailsView: View {
 
     @State private var inspected: InspectedColor?
 
+    @State private var colorImport = ColorImport()
+
     /// The gamut whose color formats are listed. Defaults to the tightest gamut that contains the color.
     @State private var gamut: Gamut
 
@@ -157,9 +159,14 @@ struct ColorDetailsView: View {
                     }
                 }
                 ToolbarItem {
+                    ColorImportMenu(colorImport: $colorImport)
+                }
+                ToolbarItem {
                     ShareLink(item: color.cssString(colorSpace: colorSpace, convertedToP3: false))
                 }
             }
+            // An import replaces the color the same way the picker does, name and all.
+            .importingColor($colorImport) { colorPickerBinding.wrappedValue = $0 }
             // Every provenance drills, `.derived` included: a shade of a shade is as worth inspecting as
             // the shade was, and the sheets simply stack.
             .inspectingColor($inspected, colorSpace: colorSpace, onAdd: onAdd)

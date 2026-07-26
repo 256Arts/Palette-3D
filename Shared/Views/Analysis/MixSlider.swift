@@ -1,14 +1,16 @@
 import PaletteKit
 import SwiftUI
 
-/// A capsule split between two colors by a draggable divider, with each side's picker and share overlaid.
-/// The whole track is draggable, so the divider stays reachable even when it sits under an end picker.
+/// A capsule split between two colors by a draggable divider, with each side's swatch and share overlaid.
+/// The whole track is draggable, so the divider stays reachable even when it sits under an end swatch.
 struct MixSlider: View {
 
     @Binding var firstColor: Color
     @Binding var secondColor: Color
     /// Percentage of the first color, `0...100`; the second color takes the remainder.
     @Binding var mix: Double
+    /// The space each end's details sheet reads and writes its color in.
+    let colorSpace: ColorSpace
 
     private static let height: CGFloat = 64
     private static let indicatorWidth: CGFloat = 6
@@ -69,18 +71,13 @@ struct MixSlider: View {
 
     private var controls: some View {
         HStack(spacing: 8) {
-            picker("First Color", selection: $firstColor)
+            ColorDetailsButton(title: "First Color", color: $firstColor, colorSpace: colorSpace)
             share(mix, over: firstColor)
             Spacer(minLength: 0)
             share(100 - mix, over: secondColor)
-            picker("Second Color", selection: $secondColor)
+            ColorDetailsButton(title: "Second Color", color: $secondColor, colorSpace: colorSpace)
         }
-        .padding(.horizontal, 10)
-    }
-
-    private func picker(_ title: LocalizedStringKey, selection: Binding<Color>) -> some View {
-        ColorPicker(title, selection: selection, supportsOpacity: false)
-            .labelsHidden()
+        .padding(.horizontal, 2)
     }
 
     /// One side's percentage, drawn in whichever of black or white contrasts better with that side.
@@ -107,6 +104,6 @@ struct MixSlider: View {
     @Previewable @State var first = Color.purple
     @Previewable @State var second = Color.teal
     @Previewable @State var mix: Double = 60
-    MixSlider(firstColor: $first, secondColor: $second, mix: $mix)
+    MixSlider(firstColor: $first, secondColor: $second, mix: $mix, colorSpace: .okLch)
         .padding()
 }

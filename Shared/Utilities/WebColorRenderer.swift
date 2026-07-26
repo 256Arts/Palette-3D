@@ -33,6 +33,20 @@ final class WebColorRenderer: NSObject, WKNavigationDelegate {
         return rows.map { Color(.displayP3, red: $0[0], green: $0[1], blue: $0[2]) }
     }
 
+    /// Resolves a single, possibly user-typed CSS color, or `nil` if it isn't a color CSS understands.
+    /// The batch call can't report that: the canvas silently keeps its previous fill for anything it
+    /// fails to parse, so unparseable text comes back as black rather than as a failure.
+    func resolve(_ cssColor: String) async -> Color? {
+        await waitUntilReady()
+
+        guard let argument = try? String(decoding: JSONEncoder().encode(cssColor), as: UTF8.self),
+              let result = try? await webView.evaluateJavaScript("window.resolveColor(\(argument))"),
+              let channels = result as? [Double], channels.count == 3
+        else { return nil }
+
+        return Color(.displayP3, red: channels[0], green: channels[1], blue: channels[2])
+    }
+
     private func waitUntilReady() async {
         guard !isReady else { return }
         await withCheckedContinuation { waiters.append($0) }
@@ -57,6 +71,8 @@ final class WebColorRenderer: NSObject, WKNavigationDelegate {
         const [r, g, b] = ctx.getImageData(0, 0, 1, 1, { colorSpace: 'display-p3' }).data;
         return [r / 255, g / 255, b / 255];
     });
+    // Validating single resolve: the canvas ignores a fill it can't parse, so ask CSS first.
+    window.resolveColor = (css) => CSS.supports('color', css) ? window.resolveColors([css])[0] : null;
     </script>
     """
 }
