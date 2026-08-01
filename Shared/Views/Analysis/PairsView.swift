@@ -45,6 +45,9 @@ struct PairsView: View {
         NavigationStack {
             List {
                 Section { colorControls }
+                    #if !os(macOS)
+                    .listSectionSpacing(.compact)
+                    #endif
                 if mode == .stats {
                     statsSections
                 } else {
@@ -76,8 +79,8 @@ struct PairsView: View {
     }
 
     /// The pair itself — the same capsule in every mode, gaining a movable split only where a mix ratio
-    /// means something. It's its own shape, so it drops the row's background rather than sitting in a
-    /// second container.
+    /// means something. It's its own shape, so it drops the row's background and vertical padding rather
+    /// than sitting inset inside a second container.
     private var colorControls: some View {
         ColorPairBar(firstColor: $firstColor,
                      secondColor: $secondColor,
@@ -85,6 +88,7 @@ struct PairsView: View {
                      colorSpace: Self.colorSpace)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
+            .listRowInsets(.vertical, 0)
     }
 
     private var percent: Int { Int(mix.rounded()) }
@@ -266,9 +270,11 @@ private struct ContrastSection: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
+            // The leading sample keeps the first color as its background, so the two read in the same order
+            // as the capsule's halves above them.
             HStack(spacing: 12) {
-                sample(text: first, on: second)
                 sample(text: second, on: first)
+                sample(text: first, on: second)
             }
             .listRowSeparator(.hidden)
             requirements
