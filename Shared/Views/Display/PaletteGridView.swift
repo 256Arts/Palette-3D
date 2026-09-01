@@ -50,7 +50,7 @@ struct PaletteGridView: View {
     var onSelect: (Int) -> Void
     var onDropColors: ([Color]) -> Void
     var onDelete: (Int) -> Void
-    var onReorder: (ReorderDifference<PaletteColor.ID, ReorderableSingleCollectionIdentifier>) -> Void
+    var onReorder: ([PaletteColor]) -> Void
 
     @SceneStorage("gridCellSize") private var cellSize: Double = 64
     @State private var gamutFilter: GamutFilter = .deviceDefault
@@ -73,17 +73,20 @@ struct PaletteGridView: View {
     var body: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: effectiveSize, maximum: effectiveSize * 1.4), spacing: 12)], spacing: 12) {
-                ForEach(items) { item in
-                    swatch(item.color)
+                // Only the OS 27 branch reorders by drag; see `usesManualMoveCommands` for the
+                // fallback, and for how to unwrap this once OS 26 is dropped.
+                if #available(iOS 27, macOS 27, visionOS 27, *) {
+                    ForEach(items) { item in
+                        swatch(item)
+                    }
+                    .reorderable()
+                } else {
+                    ForEach(items) { item in
+                        swatch(item)
+                    }
                 }
-                .reorderable()
             }
-            .reorderContainer(for: DraggableColor.self) { difference in
-                onReorder(difference)
-            }
-            .dragContainer(for: DraggableColor.self) { id in
-                items.first { $0.id == id }.map { [$0] } ?? []
-            }
+            .modifier(SwatchDragContainers(items: items, onReorder: onReorder))
             .scenePadding()
             .animation(.snappy, value: showsName)
             .animation(.snappy, value: showsHex)
@@ -108,9 +111,10 @@ struct PaletteGridView: View {
         .simultaneousGesture(zoom)
     }
 
-    private func swatch(_ color: PaletteColor) -> some View {
+    private func swatch(_ item: DraggableColor) -> some View {
+        let color = item.color
         let index = colors.firstIndex(of: color) ?? 0
-        return Button {
+        let button = Button {
             onSelect(index)
         } label: {
             VStack(spacing: 6) {
@@ -145,9 +149,51 @@ struct PaletteGridView: View {
         }
         .buttonStyle(.plain)
         .contentShape(.dragPreview, RoundedRectangle(cornerRadius: effectiveSize * 0.18, style: .continuous))
+
+        return Group {
+            if usesManualMoveCommands {
+                // Without a drag container the swatch carries its own drag, so exporting a color still works.
+                button.draggable(item)
+            } else {
+                button
+            }
+        }
         .contextMenu {
+            if usesManualMoveCommands {
+                Button("Move Left", systemImage: "arrow.left") { move(from: index, by: -1) }
+                    .disabled(index == 0)
+                Button("Move Right", systemImage: "arrow.right") { move(from: index, by: 1) }
+                    .disabled(index == colors.count - 1)
+                Divider()
+            }
             Button("Delete", systemImage: "trash", role: .destructive) { onDelete(index) }
         }
+    }
+
+    /// Drag-to-reorder needs the OS 27 reorder containers, so older systems get explicit move commands.
+    ///
+    /// Once OS 26 is dropped, ordering collapses back to a single path: delete this flag,
+    /// `move(from:by:)`, the Move Left / Move Right context-menu items, and the per-swatch
+    /// `.draggable(item)` (`dragContainer` supplies those drags once it is unconditional); unwrap the
+    /// `#available` in `body` so the `ForEach` always carries `.reorderable()`; and fold
+    /// `SwatchDragContainers` back into `body` as plain `.reorderContainer(for:)` / `.dragContainer(for:)`
+    /// modifiers. `onReorder` can then take the `ReorderDifference` itself instead of a rebuilt
+    /// `[PaletteColor]`, which lets `DisplayView` apply the move to its colors in place.
+    private var usesManualMoveCommands: Bool {
+        if #available(iOS 27, macOS 27, visionOS 27, *) {
+            return false
+        } else {
+            return true
+        }
+    }
+
+    /// Moves a swatch one place along the palette — the pre-OS 27 stand-in for dragging it.
+    private func move(from index: Int, by offset: Int) {
+        var reordered = colors
+        let destination = index + offset
+        guard reordered.indices.contains(index), reordered.indices.contains(destination) else { return }
+        reordered.swapAt(index, destination)
+        onReorder(reordered)
     }
 
     private var zoom: some Gesture {
@@ -156,6 +202,34 @@ struct PaletteGridView: View {
             .onEnded { value in
                 cellSize = Double(min(max(CGFloat(cellSize) * value.magnification, Self.minSize), Self.maxSize))
             }
+    }
+}
+
+/// The OS 27 containers that give the grid drag-to-reorder and let a swatch be dragged out of the app.
+/// Older systems get nothing here; `PaletteGridView` falls back to per-swatch drags and move commands.
+///
+/// This type exists only to hold the availability check — delete it when OS 26 is dropped, per
+/// `PaletteGridView.usesManualMoveCommands`.
+private struct SwatchDragContainers: ViewModifier {
+
+    let items: [DraggableColor]
+    let onReorder: ([PaletteColor]) -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 27, macOS 27, visionOS 27, *) {
+            content
+                .reorderContainer(for: DraggableColor.self) { difference in
+                    var reordered = items
+                    difference.apply(to: &reordered)
+                    onReorder(reordered.map(\.color))
+                }
+                .dragContainer(for: DraggableColor.self) { id in
+                    items.first { $0.id == id }.map { [$0] } ?? []
+                }
+        } else {
+            content
+        }
     }
 }
 

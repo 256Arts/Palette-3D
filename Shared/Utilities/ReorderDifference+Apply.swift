@@ -1,5 +1,8 @@
 import SwiftUI
 
+// `ReorderDifference` is OS 27-only, so this gate goes away with OS 26 — at which point
+// `PaletteGridView` can hand the difference straight to `DisplayView` again.
+@available(iOS 27, macOS 27, visionOS 27, *)
 extension ReorderDifference where CollectionID == ReorderableSingleCollectionIdentifier {
     /// Reorders `collection` in place to reflect this single-collection move.
     func apply<C>(to collection: inout C)

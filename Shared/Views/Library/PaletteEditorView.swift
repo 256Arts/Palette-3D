@@ -69,14 +69,28 @@ struct PaletteEditorView: View {
                     }
                 }
                 #endif
+                #if os(iOS) || os(macOS)
+                if #available(iOS 27, macOS 26.1, *) {
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu("Export", systemImage: "square.and.arrow.up") {
+                            exportMenu
+                        }
+                    }
+                    // Export is the primary action here; keep it in the bar while other items overflow first.
+                    .visibilityPriority(.high)
+                } else {
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu("Export", systemImage: "square.and.arrow.up") {
+                            exportMenu
+                        }
+                    }
+                }
+                #else
                 ToolbarItem(placement: .primaryAction) {
                     Menu("Export", systemImage: "square.and.arrow.up") {
                         exportMenu
                     }
                 }
-                // Export is the primary action here; keep it in the bar while other items overflow first.
-                #if os(iOS) || os(macOS)
-                .visibilityPriority(.high)
                 #endif
 
                 // Only a customized perfect palette can be reverted to its generated colors.

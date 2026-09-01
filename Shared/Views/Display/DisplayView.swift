@@ -67,8 +67,11 @@ struct DisplayView: View {
         onManualEdit()
     }
 
-    private func reorderColors(_ difference: ReorderDifference<PaletteColor.ID, ReorderableSingleCollectionIdentifier>) {
-        difference.apply(to: &paletteColors)
+    /// The grid hands back a rebuilt order rather than a `ReorderDifference`, since it cannot name that
+    /// OS 27-only type while OS 26 is supported. Once it is dropped this takes the difference again and
+    /// calls `ReorderDifference.apply(to: &paletteColors)`, reordering in place.
+    private func reorderColors(_ reordered: [PaletteColor]) {
+        paletteColors = reordered
         onManualEdit()
     }
 

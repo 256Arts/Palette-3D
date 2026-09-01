@@ -84,8 +84,17 @@ struct PaletteListView: View {
                 if !isAssistiveAccessEnabled {
                     // App-level links live on the root screen, not inside each palette editor.
                     // (On macOS they live in the Help menu instead.)
-                    ToolbarOverflowMenu {
-                        AppLinks()
+                    if #available(iOS 27, visionOS 27, *) {
+                        ToolbarOverflowMenu {
+                            AppLinks()
+                        }
+                    } else {
+                        // No toolbar overflow before OS 27, so the links carry their own menu.
+                        ToolbarItem {
+                            Menu("More", systemImage: "ellipsis") {
+                                AppLinks()
+                            }
+                        }
                     }
                 }
                 #endif
