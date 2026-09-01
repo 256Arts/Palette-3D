@@ -9,9 +9,9 @@
          <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "351A162628AA86900047AA76"
@@ -24,17 +24,17 @@
    </BuildAction>
    <TestAction
       buildConfiguration = "Debug"
-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      selectedDebuggerIdentifier = ""
+      selectedLauncherIdentifier = "Xcode.IDEFoundation.Launcher.PosixSpawn"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
          <TestableReference
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1B4230FF2C896DAD001FD549"
-               BuildableName = "Palette 3DTests.xctest"
-               BlueprintName = "Palette 3DTests"
+               BlueprintIdentifier = "1BAA000100000000000000A1"
+               BuildableName = "Palette 3DUITests.xctest"
+               BlueprintName = "Palette 3DUITests"
                ReferencedContainer = "container:Palette 3D.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -52,7 +52,7 @@
       allowLocationSimulation = "YES">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
-         <BuildableReference
+            <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "351A162628AA86900047AA76"
                BuildableName = "Palette Studio.app"
@@ -61,23 +61,6 @@
             </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
-   <ProfileAction
-      buildConfiguration = "Release"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      savedToolIdentifier = ""
-      useCustomWorkingDirectory = "NO"
-      debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "351A162628AA86900047AA76"
-               BuildableName = "Palette Studio.app"
-               BlueprintName = "Palette 3D"
-               ReferencedContainer = "container:Palette 3D.xcodeproj">
-            </BuildableReference>
-      </BuildableProductRunnable>
-   </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
    </AnalyzeAction>

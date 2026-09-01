@@ -2,7 +2,7 @@ import PaletteKit
 import SwiftUI
 import Testing
 
-@testable import Palette_3D
+@testable import Palette_Studio
 
 /// The shades, complements, and pair bars are all drawn from `WebColorRenderer`, and all of them fail the
 /// same silent way: an empty batch leaves the section on screen with nothing in it. These pin the

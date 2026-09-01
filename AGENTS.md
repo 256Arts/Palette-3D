@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Palette 3D is a multiplatform SwiftUI app (iOS, macOS, visionOS) that procedurally generates color palettes and visualizes them in 3D. Colors are positioned inside a sphere whose axes are perceptual color dimensions (lightness, chroma, hue). Palettes are saved to a SwiftData library, and can also be imported from and exported to standard formats (.gpl, .clr, palette images, lospec.com).
+The app ships as **Palette Studio** — that is its `PRODUCT_NAME`, the name under its icon, and
+its name in App Store Connect. The Xcode project, target and schemes are still spelled `Palette 3D`,
+which is why the built product and the project file disagree; only the product name was renamed.
+
+Palette Studio is a multiplatform SwiftUI app (iOS, macOS, visionOS) that procedurally generates color palettes and visualizes them in 3D. Colors are positioned inside a sphere whose axes are perceptual color dimensions (lightness, chroma, hue). Palettes are saved to a SwiftData library, and can also be imported from and exported to standard formats (.gpl, .clr, palette images, lospec.com).
 
 ## Build & Test
 
@@ -24,6 +28,49 @@ xcodebuild -scheme "Palette 3D" test -only-testing:"Palette 3DTests/PaletteTests
 Note: the app targets **OS 26** (iOS/macOS/visionOS 26.0). Newer APIs are used where they earn their place, gated with `#available` — see `PaletteGridView` (reorder containers), `PaletteListView` (`ToolbarOverflowMenu`), and `PaletteEditorView` (`visibilityPriority`, which is macOS 26.1 but iOS 27).
 
 Note: destinations/platforms are intentionally not pinned here — choose a current simulator or device at build time, as available SDKs change with Xcode updates.
+
+## App Store screenshots
+
+`Scripts/screenshots.sh [iphone ipad mac vision]` (no arguments runs all four) drives the app through
+its screens and writes PNGs to `Screenshots/<platform>/`.
+
+The runner itself is **shared across every app**, in iCloud at `Apps/Scripts/screenshots` (override the
+location with `APP_SCRIPTS_DIR`); `Scripts/screenshots.sh` only forwards to it. This repo owns three
+things: `.screenshots.conf` (project, scheme, bundle id, Mac process name), the seeding in
+`ScreenshotMode`, and the walk in `PaletteUITests/ScreenshotTests.swift`. Booting simulators, freezing
+the status bar, unpacking attachments, the Mac capture handshake, and compositing all live in the
+shared script and its `screenshot-support/` helpers — don't reimplement them here.
+
+- The app is launched with `-screenshotMode`. `ScreenshotMode` (`Shared/Utilities/`) then swaps the
+  SwiftData store for an in-memory one seeded with a generated palette plus premades, so a run neither
+  shows nor touches the real library, and pins the seed's date — `handpickedPalettes(on:)` promotes a
+  seasonal palette, so an unpinned run would differ by month.
+- `PaletteUITests/ScreenshotTests.swift` is the driver: one XCUITest walking one launch, attaching each
+  shot with `.keepAlways` (attachments on a passing test are discarded otherwise). It runs under the
+  **Screenshots** scheme, kept separate so `xcodebuild test` on the `Palette 3D` scheme stays unit-only.
+- Simulator shots come from `XCUIScreen.main.screenshot()`, already the exact pixel size the store
+  wants. The script freezes the status bar to 9:41 first.
+- Mac shots are taken by the *script*, not the test. `screencapture -l <windowID>` reads the window's
+  own buffer, so it arrives correctly masked to the rounded corners with real alpha and the system's
+  own shadow — where `XCUIElement.screenshot()` crops the screen to the window's frame and so loses
+  the shadow and leaves desktop in the corners. But `screencapture` needs Screen Recording, which the
+  test runner has no grant for and the shell does, so the test writes a `request-<name>` file into
+  `/tmp/app-store-screenshots` and blocks until the script's watcher answers with `done-<name>`.
+  `screenshot-support/WindowID.swift` does the window lookup (listing windows needs no grant; capturing does).
+  This is also why `PaletteUITests.entitlements` turns the runner's sandbox **off**: a sandboxed
+  runner cannot write `/tmp`, and its own container is unreadable to the script, so they would have
+  nowhere to meet.
+- `screenshot-support/ComposeMacScreenshot.swift` then only scales and centres that capture on a 2560x1600 canvas
+  (an accepted App Store size) over a wallpaper from iCloud — no mask to rebuild, no shadow to fake.
+  Override the backdrop with `SCREENSHOT_MAC_BACKGROUND`; if it is unreachable the compositor falls
+  back to a flat colour rather than failing the run.
+- The Mac shots photograph the app's own `defaultSize` — 1280x800, set in `Palette3DApp` — rather than
+  a size invented for screenshots. macOS restores a saved window frame ahead of `defaultSize`, so the
+  script clears the app's `NSWindow Frame` defaults first; that is the one piece of local state a run
+  touches. If a screenshot looks wrong-sized, change `defaultSize`, not the script.
+- Two hooks exist purely so the test can steer: `PaletteRow.<name>` accessibility identifiers in
+  `PaletteListView`, and accessibility labels on `DisplayView`'s display-mode picker (which was three
+  unlabelled SF Symbols).
 
 ## Dependencies
 

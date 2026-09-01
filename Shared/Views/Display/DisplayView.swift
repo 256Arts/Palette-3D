@@ -133,10 +133,13 @@ struct DisplayView: View {
             ToolbarItem(placement: displayModePlacement) {
                 Picker("Display Mode", selection: $displayMode) {
                     Image(systemName: "rotate.3d")
+                        .accessibilityLabel("Sphere")
                         .tag(DisplayMode.sphere)
                     Image(systemName: "square.grid.3x3")
+                        .accessibilityLabel("Grid")
                         .tag(DisplayMode.grid)
                     Image(systemName: "text.alignleft")
+                        .accessibilityLabel("Text")
                         .tag(DisplayMode.text)
                 }
                 .pickerStyle(.segmented)

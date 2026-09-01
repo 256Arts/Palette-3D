@@ -25,6 +25,7 @@ struct PaletteListView: View {
                     NavigationLink(value: palette) {
                         PaletteRow(palette: palette)
                     }
+                    .accessibilityIdentifier("PaletteRow.\(palette.name)")
                     #if os(macOS)
                     .draggable(PaletteColorListExport(palette: palette.snapshot(), colorSpace: palette.colorSpace))
                     #endif

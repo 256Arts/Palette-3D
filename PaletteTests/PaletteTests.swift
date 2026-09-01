@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 import Testing
 
-@testable import Palette_3D
+@testable import Palette_Studio
 
 /// The color model, generator, and file formats are PaletteKit's, and are tested there. What's left
 /// for the app to prove is its own layer: that SwiftData can store a palette, and that the bridge
@@ -11,7 +11,7 @@ import Testing
 ///
 /// `Palette` is ambiguous in this module — both the app and PaletteKit define one — so each is
 /// named explicitly: `SavedPalette` for the app's `@Model`, `KitPalette` for PaletteKit's value type.
-private typealias SavedPalette = Palette_3D.Palette
+private typealias SavedPalette = Palette_Studio.Palette
 private typealias KitPalette = PaletteKit.Palette
 
 struct PaletteTests {

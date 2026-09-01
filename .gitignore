@@ -1,0 +1,11 @@
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcresult
+
+# Screenshot pipeline (Scripts/screenshots.sh)
+build/
+Screenshots/
+
+# Conductor workspace scratch
+.context/
