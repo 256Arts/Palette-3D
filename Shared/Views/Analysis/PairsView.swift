@@ -2,18 +2,24 @@ import Foundation
 import PaletteKit
 import SwiftUI
 
-/// One interpolation space's resolved bar: a single swatch color in mix mode, or gradient stops.
+/// One interpolation space's resolved bar: the `color-mix()` swatch, the gradient's stops, or — where
+/// the width allows both — the two side by side.
 private struct InterpolationBar: Identifiable {
     let space: String
-    let colors: [Color]
+    let mix: Color?
+    let gradient: [Color]
     var id: String { space }
 }
 
 /// Compares two colors: their `color-mix()` result and gradient path through every CSS interpolation
 /// space, plus the perceptual difference and contrast between them. A root tab, not a sheet.
+///
+/// At a regular width the page shows all of that at once — each space's swatch beside its gradient, with
+/// the statistics as their own sections — so the mode picker only exists where a compact width forces the
+/// three to take turns.
 struct PairsView: View {
 
-    /// Whether the page shows single-swatch `color-mix()` results or full gradients between the two colors.
+    /// Which one of the three the page shows when it can only show one. Regular widths show all three.
     private enum Mode: String, CaseIterable, Identifiable {
         case mix = "Mix"
         case gradient = "Gradient"
@@ -26,6 +32,19 @@ struct PairsView: View {
     /// Percentage of the first color in the `color-mix()`; the second color takes the remainder.
     @State private var mix: Double = 50
     @State private var mode: Mode = .mix
+
+    #if os(macOS)
+    /// macOS has no size classes, and a window here is never as narrow as a phone.
+    private var isRegularWidth: Bool { true }
+    #else
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var isRegularWidth: Bool { horizontalSizeClass == .regular }
+    #endif
+
+    /// A regular width shows every part at once; a compact one shows whichever the picker selects.
+    private var showsMix: Bool { isRegularWidth || mode == .mix }
+    private var showsGradient: Bool { isRegularWidth || mode == .gradient }
+    private var showsStats: Bool { isRegularWidth || mode == .stats }
 
     /// The natively-drawable bars for the current inputs, one per interpolation space.
     @State private var bars: [InterpolationBar] = []
@@ -48,14 +67,15 @@ struct PairsView: View {
                     #if !os(macOS)
                     .listSectionSpacing(.compact)
                     #endif
-                if mode == .stats {
-                    statsSections
-                } else {
+                if showsMix || showsGradient {
                     Section(heading) {
                         ForEach(bars) { bar in
                             interpolationRow(bar)
                         }
                     }
+                }
+                if showsStats {
+                    statsSections
                 }
             }
             #if os(macOS)
@@ -67,11 +87,13 @@ struct PairsView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("Mode", selection: $mode) {
-                        ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+                if !isRegularWidth {
+                    ToolbarItem(placement: .principal) {
+                        Picker("Mode", selection: $mode) {
+                            ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
                     }
-                    .pickerStyle(.segmented)
                 }
             }
             .inspectingColor($inspected, colorSpace: Self.colorSpace)
@@ -84,7 +106,7 @@ struct PairsView: View {
     private var colorControls: some View {
         ColorPairBar(firstColor: $firstColor,
                      secondColor: $secondColor,
-                     mix: mode == .mix ? $mix : nil,
+                     mix: showsMix ? $mix : nil,
                      colorSpace: Self.colorSpace)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
@@ -134,12 +156,17 @@ struct PairsView: View {
         "linear-gradient(in \(space), \(cssColor(firstColor)), \(cssColor(secondColor)))"
     }
 
-    /// A space label beside its resolved swatch or gradient.
+    /// A space label beside its resolved swatch, its gradient, or both. Sharing a row is what lets the
+    /// mode picker go: the swatch is the gradient's midpoint made tappable, and they measure the same path.
     private func interpolationRow(_ bar: InterpolationBar) -> some View {
         LabeledContent {
             HStack(spacing: 12) {
-                barShape(bar.colors)
-                if mode == .gradient {
+                if let mix = bar.mix {
+                    // The swatch only narrows when it shares the row; alone it reads as the bar it replaces.
+                    mixSwatch(mix, width: bar.gradient.isEmpty ? nil : Self.sharedMixSwatchWidth)
+                }
+                if !bar.gradient.isEmpty {
+                    gradientBar(bar.gradient)
                     Button("Copy CSS Gradient", systemImage: "doc.on.doc") {
                         cssGradient(bar.space).copyToPasteboard()
                     }
@@ -155,35 +182,37 @@ struct PairsView: View {
         .labeledContentStyle(.interpolation)
     }
 
-    /// A single mixed swatch, which taps into its own details, or a left-to-right gradient through the
-    /// sampled stops. A gradient's stops aren't tappable: every one of them is a mix ratio away on the
-    /// slider, and 24 hit targets per row would bury the bar in VoiceOver.
-    @ViewBuilder private func barShape(_ colors: [Color]) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 7)
-        if colors.count == 1, let only = colors.first {
-            Button {
-                inspected = InspectedColor(only, colorSpace: Self.colorSpace)
-            } label: {
-                shape.fill(only)
-                    .frame(height: 30)
-                    .overlay(shape.strokeBorder(.primary.opacity(0.12)))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Mixed color")
-            .accessibilityAddTraits(.isButton)
-        } else {
-            shape.fill(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing))
-                .frame(height: 30)
-                .overlay(shape.strokeBorder(.primary.opacity(0.12)))
+    /// A single mixed swatch, which taps into its own details.
+    private func mixSwatch(_ color: Color, width: CGFloat?) -> some View {
+        Button {
+            inspected = InspectedColor(color, colorSpace: Self.colorSpace)
+        } label: {
+            Self.barShape.fill(color)
+                .frame(width: width, height: Self.barHeight)
+                .overlay(Self.barShape.strokeBorder(.primary.opacity(0.12)))
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Mixed color")
+        .accessibilityAddTraits(.isButton)
     }
 
+    /// A left-to-right gradient through the sampled stops. Its stops aren't tappable: every one of them is
+    /// a mix ratio away on the slider, and 24 hit targets per row would bury the bar in VoiceOver.
+    private func gradientBar(_ colors: [Color]) -> some View {
+        Self.barShape.fill(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing))
+            .frame(height: Self.barHeight)
+            .overlay(Self.barShape.strokeBorder(.primary.opacity(0.12)))
+    }
+
+    private static let barShape = RoundedRectangle(cornerRadius: 7)
+    private static let barHeight: CGFloat = 30
+    /// What the mix swatch shrinks to when the gradient shares its row — a color needs no width to read,
+    /// where the gradient's whole point is the path across it.
+    private static let sharedMixSwatchWidth: CGFloat = 60
+
     private var heading: String {
-        switch mode {
-        case .stats: ""
-        case .mix: "Mix by Interpolation Space"
-        case .gradient: "Gradients by Interpolation Space"
-        }
+        if showsMix && showsGradient { return "Interpolation Spaces" }
+        return showsGradient ? "Gradients by Interpolation Space" : "Mix by Interpolation Space"
     }
 
     /// A qualitative label for the ΔE₀₀ magnitude.
@@ -199,37 +228,43 @@ struct PairsView: View {
 
     /// A value that changes whenever the resolved bars need recomputing.
     private var inputKey: String {
-        "\(cssColor(firstColor))|\(cssColor(secondColor))|\(percent)|\(mode.rawValue)"
+        "\(cssColor(firstColor))|\(cssColor(secondColor))|\(percent)|\(showsMix)|\(showsGradient)"
     }
 
-    /// Resolves every space's `color-mix()` (mix mode) or gradient stops in one batched web call.
+    /// Resolves every space's `color-mix()` swatch, its gradient stops, or both in one batched web call.
     private func updateBars() async {
-        guard mode != .stats else { return }
+        guard showsMix || showsGradient else {
+            bars = []
+            return
+        }
         let first = cssColor(firstColor)
         let second = cssColor(secondColor)
-        let perBar = mode == .mix ? 1 : Self.gradientSampleCount
+        let gradientCount = showsGradient ? Self.gradientSampleCount : 0
+        let perBar = (showsMix ? 1 : 0) + gradientCount
 
         let requests = Self.interpolationSpaces.flatMap { space -> [String] in
-            switch mode {
-            case .stats:
-                return []
-            case .mix:
-                return ["color-mix(in \(space), \(first) \(percent)%, \(second))"]
-            case .gradient:
+            var css: [String] = []
+            if showsMix {
+                css.append("color-mix(in \(space), \(first) \(percent)%, \(second))")
+            }
+            if showsGradient {
                 // Sampling `color-mix(in S, second t%, first)` across t reproduces the gradient's path.
-                return (0..<Self.gradientSampleCount).map { step in
+                css += (0..<Self.gradientSampleCount).map { step in
                     let t = Double(step) / Double(Self.gradientSampleCount - 1)
                     return "color-mix(in \(space), \(second) \(String(format: "%.2f", t * 100))%, \(first))"
                 }
             }
+            return css
         }
 
         let resolved = await WebColorRenderer.shared.resolve(requests)
         guard resolved.count == requests.count else { return }
 
         bars = Self.interpolationSpaces.enumerated().map { index, space in
-            let stops = resolved[(index * perBar)..<((index + 1) * perBar)]
-            return InterpolationBar(space: space, colors: Array(stops))
+            let stops = Array(resolved[(index * perBar)..<((index + 1) * perBar)])
+            return InterpolationBar(space: space,
+                                    mix: showsMix ? stops.first : nil,
+                                    gradient: Array(stops.suffix(gradientCount)))
         }
     }
 }
