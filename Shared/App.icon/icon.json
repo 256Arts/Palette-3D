@@ -7,7 +7,19 @@
       "layers" : [
         {
           "image-name" : "App Front.png",
-          "name" : "App Front"
+          "name" : "App Front",
+          "position-specializations" : [
+            {
+              "idiom" : "square",
+              "value" : {
+                "scale" : 0.92,
+                "translation-in-points" : [
+                  0,
+                  0
+                ]
+              }
+            }
+          ]
         }
       ],
       "shadow" : {
