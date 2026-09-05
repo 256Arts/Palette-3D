@@ -32,9 +32,11 @@ Note: destinations/platforms are intentionally not pinned here — choose a curr
 ## App Store screenshots
 
 `Scripts/screenshots.sh [iphone ipad mac vision]` (no arguments runs all four) drives the app through
-its screens and writes PNGs to `Screenshots/<platform>/`.
+its screens and writes PNGs to `Raw Assets/Screenshots/` as `Phone 6.9 1.png`, `Pad 13 1.png`,
+`Mac 1.png`, `Vision 1.png`. That folder is a symlink out to iCloud, so nothing lands in the repo;
+the hand-made shots it replaced are archived beside them in `Old (Manual)/`.
 
-The runner itself is **shared across every app**, in iCloud at `Apps/Scripts/screenshots` (override the
+The runner itself is **shared across every app**, in iCloud at `Repos/Scripts/screenshots` (override the
 location with `APP_SCRIPTS_DIR`); `Scripts/screenshots.sh` only forwards to it. This repo owns three
 things: `.screenshots.conf` (project, scheme, bundle id, Mac process name), the seeding in
 `ScreenshotMode`, and the walk in `PaletteUITests/ScreenshotTests.swift`. Booting simulators, freezing
