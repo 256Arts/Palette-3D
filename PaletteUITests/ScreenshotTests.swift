@@ -1,4 +1,7 @@
 import XCTest
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Drives the app through the screens that become App Store screenshots and attaches each one to the
 /// result bundle, where `Scripts/screenshots.sh` extracts them.
@@ -20,28 +23,80 @@ final class ScreenshotTests: XCTestCase {
         openWindowIfNeeded()
         #endif
 
+        checkSeedIsThrowaway()
+
         // The library is the landing tab, so it is ready as soon as a seeded row exists.
         let featuredRow = control("PaletteRow.Sunset Study")
-        XCTAssertTrue(featuredRow.waitForExistence(timeout: 30), "seeded library never appeared")
+        guard waitFor(featuredRow, "the seeded library", shot: "01-library", timeout: 30) else { return }
         settle()
         capture("01-library")
 
-        activate(control("Pairs"), "Pairs tab")
+        activate(control("Pairs"), "Pairs tab", shot: "04-pairs")
         settle(seconds: 4)   // the ramps come back from an offscreen WKWebView, not from SwiftUI
         capture("04-pairs")
 
-        activate(control("Color"), "Color tab")
+        activate(control("Color"), "Color tab", shot: "05-color")
         settle()
         capture("05-color")
 
-        activate(control("Palettes"), "Palettes tab")
-        activate(control("PaletteRow.Sunset Study"), "featured palette row")
+        activate(control("Palettes"), "Palettes tab", shot: "02-editor-sphere")
+        activate(control("PaletteRow.Sunset Study"), "featured palette row", shot: "02-editor-sphere")
         settle(seconds: 4)   // the sphere is RealityKit; give it frames to draw
         capture("02-editor-sphere")
 
-        activate(control("Grid"), "Grid display mode")
+        activate(control("Grid"), "Grid display mode", shot: "03-editor-grid")
         settle()
         capture("03-editor-grid")
+    }
+
+    // MARK: - The seed
+
+    /// What the app said it seeded, read out of the accessibility tree.
+    ///
+    /// The app hangs `ScreenshotMode.status` on its root view (`.screenshotModeStatus()`). A walk
+    /// that cannot find it is running against a build that has not adopted that modifier, which is
+    /// worth saying plainly rather than reporting as an empty seed.
+    private var seedStatus: String {
+        let label = app.descendants(matching: .any)["ScreenshotMode.Status"]
+        guard label.waitForExistence(timeout: 30) else {
+            return "no ScreenshotMode.Status element — add .screenshotModeStatus() to the app's root view"
+        }
+        // A SwiftUI `Text` reaches XCUITest as the element's *value* on macOS and as its *label* on
+        // iOS, so take whichever is filled in rather than betting on one.
+        if let value = label.value as? String, !value.isEmpty { return value }
+        return label.label
+    }
+
+    /// Stops the walk when the app did not seed the throwaway store.
+    ///
+    /// `ScreenshotMode.seed` refuses to write to a store that is on disk or still synced with
+    /// CloudKit, because a screenshot run that reached the real store writes demo palettes into
+    /// the user's own. The walk that followed would then photograph an empty app and fail on a
+    /// missing row, which says nothing about why. Read the reason instead, before the first shot.
+    private func checkSeedIsThrowaway() {
+        let status = seedStatus
+        print("SCREENSHOT MODE: \(status)")
+        guard status.hasPrefix("ready") else {
+            attach(XCTAttachment(string: app.debugDescription), named: "element-tree")
+            return XCTFail("the app did not seed a throwaway store, so there is nothing to photograph — \(status)")
+        }
+    }
+
+    private static var platform: String {
+        #if os(macOS)
+        "macOS"
+        #elseif targetEnvironment(macCatalyst)
+        "Mac Catalyst"
+        #elseif os(visionOS)
+        "visionOS"
+        #else
+        UIDevice.current.userInterfaceIdiom == .pad ? "iPadOS" : "iOS"
+        #endif
+    }
+
+    /// Which simulator this was, for a failure read days after the run's own log is gone.
+    private static var device: String {
+        ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "this machine"
     }
 
     #if os(macOS)
@@ -83,13 +138,30 @@ final class ScreenshotTests: XCTestCase {
         return app.buttons[label]   // nothing matched; let the caller's assertion name the miss
     }
 
-    private func activate(_ element: XCUIElement, _ description: String) {
-        XCTAssertTrue(element.waitForExistence(timeout: 15), "never found \(description)")
+    private func activate(_ element: XCUIElement, _ description: String, shot: String) {
+        guard waitFor(element, description, shot: shot, timeout: 15) else { return }
         #if os(macOS)
         element.click()
         #else
         element.tap()
         #endif
+    }
+
+    /// Waits for `element`, naming everything a failure needs to explain itself: the platform, the
+    /// device, what it was waiting for, which shot it was heading toward, and what the seed reported
+    /// — so a miss reads as more than "seeded content never appeared".
+    @discardableResult
+    private func waitFor(_ element: XCUIElement, _ description: String, shot: String, timeout: TimeInterval) -> Bool {
+        guard element.waitForExistence(timeout: timeout) else {
+            attach(XCTAttachment(string: app.debugDescription), named: "element-tree")
+            XCTFail("""
+                never found \(description) heading into \(shot) on \(Self.platform), \(Self.device).
+                The app reported: \(seedStatus)
+                The screen at the time is attached as element-tree.
+                """)
+            return false
+        }
+        return true
     }
 
     /// Animations and async content have no element to wait on, so the shots pause instead.

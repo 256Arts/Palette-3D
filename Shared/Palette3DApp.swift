@@ -34,6 +34,7 @@ struct Palette3DApp: App {
                         showingEvent = true
                     }
                 }
+                .screenshotModeStatus()
         }
         .modelContainer(container)
         #if os(macOS)
