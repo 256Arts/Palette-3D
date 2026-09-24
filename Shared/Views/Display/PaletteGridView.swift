@@ -13,7 +13,7 @@ enum GamutFilter: String, CaseIterable, Identifiable {
 
     var id: Self { self }
 
-    var name: String {
+    var name: LocalizedStringResource {
         switch self {
         case .none: "All"
         case .p3: "P3 Representable"
@@ -134,7 +134,7 @@ struct PaletteGridView: View {
                         }
                     }
                 if showsName {
-                    Text(color.name ?? "Color \(index + 1)")
+                    (color.name.map(Text.init) ?? Text("Color \(index + 1)"))
                         .font(.caption)
                         .lineLimit(1)
                         .foregroundStyle(color.name == nil ? .secondary : .primary)

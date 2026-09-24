@@ -139,7 +139,7 @@ struct PaletteEditorView: View {
                         textShareLink(format, name: format.name, colorSpace: colorSpace)
                     }
                 } label: {
-                    FormatLabel(name: gamut.shareMenuTitle,
+                    FormatLabel(name: LocalizedStringKey(gamut.shareMenuTitle),
                                 isClamped: gamut.clamps(palette.colors, colorSpace: colorSpace),
                                 systemImage: "square.and.arrow.up")
                 }
@@ -169,7 +169,7 @@ struct PaletteEditorView: View {
 
     private func textShareLink(_ format: ColorFormat, name: String, colorSpace: ColorSpace) -> some View {
         ShareLink(item: format.text(palette.colors, colorSpace: colorSpace)) {
-            FormatLabel(name: name, isClamped: format.gamut.clamps(palette.colors, colorSpace: colorSpace))
+            FormatLabel(name: LocalizedStringKey(name), isClamped: format.gamut.clamps(palette.colors, colorSpace: colorSpace))
         }
     }
 

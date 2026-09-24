@@ -137,7 +137,7 @@ struct ColorDetailsView: View {
             // grouped pair itself: the page is the gray, the boxes on it are the white.
             .background(Color.groupedBackground)
             .ignoresSafeArea(edges: .top)
-            .navigationTitle(color.name ?? "Color")
+            .navigationTitle(color.name.map(Text.init) ?? Text("Color"))
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
@@ -232,7 +232,7 @@ struct ColorDetailsView: View {
         let value = format.string(color, colorSpace: colorSpace)
 
         return HStack(spacing: 12) {
-            FormatLabel(name: name, isClamped: isClamped)
+            FormatLabel(name: LocalizedStringKey(name), isClamped: isClamped)
                 .foregroundStyle(isClamped ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
                 .accessibilityLabel(isClamped ? "\(name), clamped to fit this gamut" : name)
                 .frame(width: 110, alignment: .leading)

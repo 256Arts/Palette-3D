@@ -109,7 +109,7 @@ struct ComplementsView: View {
 
     /// The classic name for an evenly spaced wheel of this size, where one exists — these are the sizes
     /// a designer already thinks in, so the stepper names them rather than making them be counted out.
-    private var harmonyName: String? {
+    private var harmonyName: LocalizedStringResource? {
         switch total {
         case 2: "Complementary"
         case 3: "Triadic"
@@ -145,7 +145,7 @@ struct ComplementsView: View {
     }
 
     /// The wheel is otherwise a row of unnamed swatches, indistinguishable to VoiceOver.
-    private func name(of complement: Complement) -> String {
+    private func name(of complement: Complement) -> LocalizedStringKey {
         complement.id == 0 ? "Original" : "\(degrees(complement.degrees)) degree hue rotation"
     }
 

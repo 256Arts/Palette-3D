@@ -10,6 +10,13 @@ struct PaletteInspectorView: View {
         case parameters = "Parameters"
         case analysis = "Analysis"
         var id: Self { self }
+
+        var name: LocalizedStringResource {
+            switch self {
+            case .parameters: "Parameters"
+            case .analysis: "Analysis"
+            }
+        }
     }
 
     @Bindable var generator: PaletteGenerator
@@ -36,12 +43,12 @@ struct PaletteInspectorView: View {
             // With no parameters there is nothing to switch, so the title names the panel instead.
             if canEditParameters {
                 Picker("Panel", selection: $panel) {
-                    ForEach(Panel.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(Panel.allCases) { Text($0.name).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
             } else {
-                Text(Panel.analysis.rawValue)
+                Text(Panel.analysis.name)
                     .font(.headline)
             }
         }

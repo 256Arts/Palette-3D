@@ -8,7 +8,7 @@ import SwiftUI
 /// gives that slot up while it's clamped — the warning is the more important of the two.
 struct FormatLabel: View {
 
-    let name: String
+    let name: LocalizedStringKey
     let isClamped: Bool
     var systemImage: String?
 

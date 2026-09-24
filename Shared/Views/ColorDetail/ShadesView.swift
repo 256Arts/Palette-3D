@@ -74,7 +74,7 @@ struct ShadesView: View {
     }
 
     /// The ramp is otherwise nine unnamed swatches, indistinguishable to VoiceOver.
-    private func name(ofStep step: Double) -> String {
+    private func name(ofStep step: Double) -> LocalizedStringKey {
         switch step {
         case 0: "Base"
         case ..<0: "\(Int(-step))% lighter"

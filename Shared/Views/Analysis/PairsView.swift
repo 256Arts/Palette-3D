@@ -216,7 +216,7 @@ struct PairsView: View {
     }
 
     /// A qualitative label for the ΔE₀₀ magnitude.
-    private func deltaEDescription(_ deltaE: Double) -> String {
+    private func deltaEDescription(_ deltaE: Double) -> LocalizedStringResource {
         switch deltaE {
         case ..<1: "Imperceptible"
         case ..<2: "Barely perceptible"
@@ -341,7 +341,7 @@ private struct ContrastSection: View {
         }
     }
 
-    private func requirement(_ label: String, aa: Double, aaa: Double?) -> some View {
+    private func requirement(_ label: LocalizedStringKey, aa: Double, aaa: Double?) -> some View {
         GridRow {
             Text(label).font(.callout)
             target(aa, label: label, grade: "AA")
@@ -354,7 +354,7 @@ private struct ContrastSection: View {
     }
 
     /// One threshold: its required ratio, marked pass or fail against the measured contrast.
-    private func target(_ ratio: Double, label: String, grade: String) -> some View {
+    private func target(_ ratio: Double, label: LocalizedStringKey, grade: String) -> some View {
         let passes = contrast >= ratio
         return HStack(spacing: 4) {
             Image(systemName: passes ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -364,7 +364,7 @@ private struct ContrastSection: View {
         .font(.subheadline.weight(.medium))
         .foregroundStyle(passes ? Color.green : Color.red.opacity(0.8))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(grade), needs \(ratio.formatted()) to 1")
+        .accessibilityLabel(Text("\(Text(label)), \(grade), needs \(ratio.formatted()) to 1"))
         .accessibilityValue(passes ? "Pass" : "Fail")
     }
 }
