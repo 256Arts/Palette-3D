@@ -179,7 +179,9 @@ final class ScreenshotTests: XCTestCase {
         // a machine-wide lock so that cannot happen; this is the check that it held.
         XCTAssertEqual(app.state, .runningForeground,
                        "\(name): the app under test was not frontmost — another app has this device")
-        #if os(macOS)
+        #if os(macOS) || os(visionOS)
+        // visionOS too: it has no screen for `XCUIScreen` to return (the call comes back 1x1), so
+        // the script photographs the simulator instead.
         captureWindow(named: name)
         #else
         // The simulator's screen already *is* the store's canvas, at the exact required pixel size.
@@ -193,7 +195,7 @@ final class ScreenshotTests: XCTestCase {
         add(attachment)
     }
 
-    #if os(macOS)
+    #if os(macOS) || os(visionOS)
 
     /// Asks the shell running the tests to photograph the window, and waits for it.
     ///
@@ -207,6 +209,7 @@ final class ScreenshotTests: XCTestCase {
     /// They meet in a plain directory under /tmp. That works only because the runner is deliberately
     /// unsandboxed (PaletteUITests/PaletteUITests.entitlements): a sandboxed runner cannot write /tmp,
     /// and its own container is unreadable to the script, so the two would have nowhere to meet.
+    /// (On the visionOS simulator the same path is the host's, which is what lets `simctl` answer.)
     private static let handshakeDirectory = URL(fileURLWithPath: "/tmp/app-store-screenshots")
 
     private func captureWindow(named name: String) {
