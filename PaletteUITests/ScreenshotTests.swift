@@ -129,10 +129,11 @@ final class ScreenshotTests: XCTestCase {
     // MARK: - Driving
 
     /// Tabs and toolbar segments surface as different element types per platform, so look through the
-    /// types that can actually be activated rather than guessing one.
+    /// types that can actually be activated rather than guessing one. visionOS can list a tab twice
+    /// (the tab bar ornament and its sidebar), so the first match is taken.
     private func control(_ label: String) -> XCUIElement {
         for query in [app.buttons, app.radioButtons, app.descendants(matching: .tab)] {
-            let element = query[label]
+            let element = query[label].firstMatch
             if element.exists { return element }
         }
         return app.buttons[label]   // nothing matched; let the caller's assertion name the miss
