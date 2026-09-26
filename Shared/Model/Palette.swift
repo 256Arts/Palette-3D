@@ -7,21 +7,24 @@ import SwiftData
 /// This is the SwiftData face of a palette; the colors, generator, and file formats all come from
 /// **PaletteKit**. `Palette` here always means this `@Model` — PaletteKit's storage-agnostic value
 /// type is spelled `PaletteKit.Palette`, and the two convert via `init(_:)` and `snapshot()`.
+///
+/// The library syncs through CloudKit, which requires every stored property to be optional or
+/// defaulted and forbids `@Attribute(.unique)` — keep both true when adding properties.
 @Model
 final class Palette {
 
-    var name: String
+    var name: String = ""
 
     /// The generation parameters, if this is a "perfect" palette. `nil` for plain color lists (e.g. imported `.clr`).
     var parameters: PaletteGenerator.Parameters?
 
     /// The realized colors. For a perfect palette this is regenerated from `parameters` until the user customizes it.
-    var colors: [PaletteColor]
+    var colors: [PaletteColor] = []
 
     /// Once the user manually edits a color, generation is locked so parameter changes can't overwrite their work.
-    var isCustomized: Bool
+    var isCustomized: Bool = false
 
-    var dateModified: Date
+    var dateModified: Date = Date.now
 
     init(name: String, parameters: PaletteGenerator.Parameters?, colors: [PaletteColor], isCustomized: Bool = false, dateModified: Date = .now) {
         self.name = name

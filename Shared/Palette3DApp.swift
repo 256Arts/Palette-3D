@@ -14,10 +14,12 @@ struct Palette3DApp: App {
         // A screenshot run gets a throwaway seeded store; every other launch keeps the real library.
         if ScreenshotMode.isActive {
             container = try! ModelContainer(for: Palette.self,
-                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
             ScreenshotMode.seed(container.mainContext)
         } else {
-            container = try! ModelContainer(for: Palette.self)
+            // Synced through the app's iCloud container, so a palette made on one device reaches the others.
+            container = try! ModelContainer(for: Palette.self,
+                                            configurations: ModelConfiguration(cloudKitDatabase: .automatic))
         }
     }
 

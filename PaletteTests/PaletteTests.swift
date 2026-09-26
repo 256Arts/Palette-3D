@@ -39,6 +39,19 @@ struct PaletteTests {
         #expect(plain.colors.first?.hueAngle == .degrees(120))
     }
 
+    /// The library syncs through CloudKit, which rejects a schema with a required attribute that has no
+    /// default or with a unique constraint — and only says so at launch, on a device signed into iCloud.
+    @Test func schemaIsCloudKitCompatible() throws {
+        let entity = try #require(Schema([SavedPalette.self]).entities.first)
+        #expect(entity.uniquenessConstraints.isEmpty)
+        for attribute in entity.attributes {
+            #expect(attribute.isOptional || attribute.defaultValue != nil, "\(attribute.name) needs a default")
+            #expect(!attribute.isUnique, "\(attribute.name) can't be unique")
+        }
+        _ = try ModelContainer(for: SavedPalette.self, configurations: ModelConfiguration(
+            isStoredInMemoryOnly: true, cloudKitDatabase: .private("iCloud.com.jaydenirwin.palette3d")))
+    }
+
     /// An imported PaletteKit palette lands as a plain saved palette, and snapshots back out intact —
     /// this is the path every import (.gpl, .clr, palette image, lospec) and every export takes.
     @Test func importedPaletteRoundTripsThroughTheModel() throws {
