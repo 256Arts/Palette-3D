@@ -13,6 +13,12 @@ final class ScreenshotTests: XCTestCase {
 
     private var app: XCUIApplication!
 
+    /// Whether the walk turned the device on its side, which the capture has to undo.
+    ///
+    /// Tracked here rather than read back from `XCUIDevice.shared.orientation`, which a simulator
+    /// answers as portrait however the UI is laid out.
+    private var isLandscape = false
+
     func testCaptureAppStoreScreenshots() throws {
         continueAfterFailure = false
         app = XCUIApplication()
@@ -21,6 +27,8 @@ final class ScreenshotTests: XCTestCase {
 
         #if os(macOS)
         openWindowIfNeeded()
+        #elseif os(iOS)
+        turnToRequestedOrientation()
         #endif
 
         checkSeedIsThrowaway()
@@ -165,6 +173,19 @@ final class ScreenshotTests: XCTestCase {
         return true
     }
 
+    #if os(iOS)
+    /// Turns the device the way the runner asked (`IPAD_ORIENTATION`, landscape by default on iPad).
+    ///
+    /// After `launch()`, not before: a rotation set before the app is up is silently dropped, and
+    /// the set comes back portrait. The runner checks every shot's shape, so that fails the run.
+    private func turnToRequestedOrientation() {
+        guard ProcessInfo.processInfo.environment["SCREENSHOT_ORIENTATION"] == "landscape" else { return }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        isLandscape = true
+        settle()
+    }
+    #endif
+
     /// Animations and async content have no element to wait on, so the shots pause instead.
     private func settle(seconds: TimeInterval = 2) {
         Thread.sleep(forTimeInterval: seconds)
@@ -185,7 +206,28 @@ final class ScreenshotTests: XCTestCase {
         captureWindow(named: name)
         #else
         // The simulator's screen already *is* the store's canvas, at the exact required pixel size.
-        attach(XCTAttachment(screenshot: XCUIScreen.main.screenshot()), named: name)
+        attach(upright(XCUIScreen.main.screenshot()), named: name)
+        #endif
+    }
+
+    /// The screenshot, turned the way the device is being held.
+    ///
+    /// `XCUIScreen.main.screenshot()` photographs the *physical* screen: a rotated device comes back
+    /// as a portrait buffer carrying its quarter turn as metadata, which `XCTAttachment(screenshot:)`
+    /// writes out content-on-its-side. Redrawing bakes the metadata into the pixels — `UIImage.size`
+    /// is already the turned size and `draw(at:)` honours the orientation, so no manual rotation.
+    private func upright(_ screenshot: XCUIScreenshot) -> XCTAttachment {
+        #if os(iOS)
+        guard isLandscape else { return XCTAttachment(screenshot: screenshot) }
+        let image = screenshot.image
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale   // keep the pixel count the store checks against
+        format.opaque = true
+        return XCTAttachment(image: UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(at: .zero)
+        })
+        #else
+        XCTAttachment(screenshot: screenshot)
         #endif
     }
 
