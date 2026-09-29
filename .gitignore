@@ -1,0 +1,13 @@
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcresult
+
+# Screenshot pipeline (Scripts/screenshots.sh)
+build/
+
+# Conductor workspace scratch
+.context/
+
+# Xcode state, build products, agent scratchpad, macOS
+.DS_Store

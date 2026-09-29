@@ -1,0 +1,88 @@
+{
+  "fill" : "system-dark",
+  "groups" : [
+    {
+      "hidden" : false,
+      "layers" : [
+        {
+          "image-name" : "wave 2 2.svg",
+          "name" : "wave 2 2"
+        },
+        {
+          "blend-mode" : "lighten",
+          "fill" : {
+            "solid" : "extended-srgb:0.20392,0.78039,0.34902,1.00000"
+          },
+          "image-name" : "circle 2.svg",
+          "name" : "circle 2",
+          "position" : {
+            "scale" : 1.6,
+            "translation-in-points" : [
+              41,
+              -443
+            ]
+          }
+        },
+        {
+          "blend-mode" : "lighten",
+          "fill" : {
+            "solid" : "extended-srgb:1.00000,0.21961,0.23529,1.00000"
+          },
+          "image-name" : "circle 2.svg",
+          "name" : "circle 2",
+          "position" : {
+            "scale" : 1.6,
+            "translation-in-points" : [
+              -181.5999999999999,
+              -331
+            ]
+          }
+        },
+        {
+          "blend-mode" : "lighten",
+          "fill" : {
+            "solid" : "extended-srgb:0.38039,0.33333,0.96078,1.00000"
+          },
+          "image-name" : "circle 2.svg",
+          "name" : "circle 2",
+          "position" : {
+            "scale" : 1.6,
+            "translation-in-points" : [
+              228,
+              324.37573156642384
+            ]
+          }
+        },
+        {
+          "blend-mode" : "lighten",
+          "fill" : {
+            "solid" : "extended-srgb:0.00000,0.76471,0.81569,1.00000"
+          },
+          "image-name" : "circle 2.svg",
+          "name" : "circle 2",
+          "position" : {
+            "scale" : 1.6,
+            "translation-in-points" : [
+              66,
+              450
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
