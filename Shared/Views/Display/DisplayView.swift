@@ -60,6 +60,15 @@ struct DisplayView: View {
     }
     #endif
 
+    #if !os(visionOS)
+    private var displayModeItem: some ToolbarContent {
+        ToolbarItem(placement: displayModePlacement) {
+            displayModePicker
+        }
+        .sharedBackgroundVisibility(.hidden)
+    }
+    #endif
+
     private var displayModePicker: some View {
         Picker("Display Mode", selection: $displayMode) {
             ForEach(DisplayMode.allCases) { mode in
@@ -175,11 +184,15 @@ struct DisplayView: View {
             ToolbarSpacer(.fixed)
             #endif
 
-            #if !os(visionOS)
-            ToolbarItem(placement: displayModePlacement) {
-                displayModePicker
+            #if os(iOS)
+            if #available(iOS 27.1, *) {
+                displayModeItem
+                    .axisBehavior(.verticalPreferred)
+            } else {
+                displayModeItem
             }
-            .sharedBackgroundVisibility(.hidden)
+            #elseif os(macOS)
+            displayModeItem
             #endif
 
             #if os(iOS)
