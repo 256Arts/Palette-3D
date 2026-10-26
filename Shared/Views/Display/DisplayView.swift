@@ -64,36 +64,18 @@ struct DisplayView: View {
     private var displayModeItem: some ToolbarContent {
         ToolbarItem(placement: displayModePlacement) {
             #if os(iOS)
-            displayModeControl
+            if #available(iOS 27.1, *) {
+                DisplayModeControl(displayMode: $displayMode) {
+                    displayModePicker
+                }
+            } else {
+                displayModePicker
+            }
             #else
             displayModePicker
             #endif
         }
         .sharedBackgroundVisibility(.hidden)
-    }
-    #endif
-
-    #if os(iOS)
-    /// The Duo's side toolbar is too narrow for a segmented control, which can't turn vertical,
-    /// so there the same choice stacks as buttons in a glass capsule of its own.
-    private var displayModeControl: some View {
-        ViewThatFits(in: .horizontal) {
-            displayModePicker
-            VStack(spacing: 0) {
-                ForEach(DisplayMode.allCases) { mode in
-                    Button(mode.title, systemImage: mode.systemImage) {
-                        displayMode = mode
-                    }
-                    .labelStyle(.iconOnly)
-                    .foregroundStyle(mode == displayMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
-                    .frame(width: 44, height: 44)
-                    .contentShape(.rect)
-                    .accessibilityAddTraits(mode == displayMode ? .isSelected : [])
-                }
-            }
-            .padding(.vertical, 4)
-            .glassEffect(.regular.interactive(), in: .capsule)
-        }
     }
     #endif
 
@@ -281,3 +263,36 @@ struct DisplayView: View {
                     displayMode: .constant(.sphere), showingAddColor: .constant(false))
     }
 }
+
+#if os(iOS)
+/// A segmented control can't turn vertical, so in a vertical toolbar (the Duo's side bar) the same
+/// choice stacks as buttons in a glass capsule of its own.
+@available(iOS 27.1, *)
+private struct DisplayModeControl<Picker: View>: View {
+    @Binding var displayMode: DisplayView.DisplayMode
+    @ViewBuilder var picker: Picker
+
+    @Environment(\.toolbarVerticalEdge) private var toolbarVerticalEdge
+
+    var body: some View {
+        if toolbarVerticalEdge == nil {
+            picker
+        } else {
+            VStack(spacing: 0) {
+                ForEach(DisplayView.DisplayMode.allCases) { mode in
+                    Button(mode.title, systemImage: mode.systemImage) {
+                        displayMode = mode
+                    }
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(mode == displayMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+                    .accessibilityAddTraits(mode == displayMode ? .isSelected : [])
+                }
+            }
+            .padding(.vertical, 4)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+    }
+}
+#endif
