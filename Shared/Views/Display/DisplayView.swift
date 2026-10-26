@@ -63,9 +63,37 @@ struct DisplayView: View {
     #if !os(visionOS)
     private var displayModeItem: some ToolbarContent {
         ToolbarItem(placement: displayModePlacement) {
+            #if os(iOS)
+            displayModeControl
+            #else
             displayModePicker
+            #endif
         }
         .sharedBackgroundVisibility(.hidden)
+    }
+    #endif
+
+    #if os(iOS)
+    /// The Duo's side toolbar is too narrow for a segmented control, which can't turn vertical,
+    /// so there the same choice stacks as buttons in a glass capsule of its own.
+    private var displayModeControl: some View {
+        ViewThatFits(in: .horizontal) {
+            displayModePicker
+            VStack(spacing: 0) {
+                ForEach(DisplayMode.allCases) { mode in
+                    Button(mode.title, systemImage: mode.systemImage) {
+                        displayMode = mode
+                    }
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(mode == displayMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+                    .accessibilityAddTraits(mode == displayMode ? .isSelected : [])
+                }
+            }
+            .padding(.vertical, 4)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
     }
     #endif
 
