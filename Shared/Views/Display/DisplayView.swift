@@ -266,7 +266,7 @@ struct DisplayView: View {
 
 #if os(iOS)
 /// A segmented control can't turn vertical, so in a vertical toolbar (the Duo's side bar) the same
-/// choice stacks as buttons in a glass capsule of its own.
+/// choice stacks as toggles in a glass capsule of its own.
 @available(iOS 27.1, *)
 private struct DisplayModeControl<Picker: View>: View {
     @Binding var displayMode: DisplayView.DisplayMode
@@ -280,17 +280,15 @@ private struct DisplayModeControl<Picker: View>: View {
         } else {
             VStack(spacing: 0) {
                 ForEach(DisplayView.DisplayMode.allCases) { mode in
-                    Button(mode.title, systemImage: mode.systemImage) {
-                        displayMode = mode
-                    }
-                    .labelStyle(.iconOnly)
-                    .foregroundStyle(mode == displayMode ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
-                    .frame(width: 44, height: 44)
-                    .contentShape(.rect)
-                    .accessibilityAddTraits(mode == displayMode ? .isSelected : [])
+                    // Turning the current mode off has nothing to fall back to, so only turning on lands.
+                    Toggle(mode.title, systemImage: mode.systemImage, isOn: Binding(
+                        get: { displayMode == mode },
+                        set: { if $0 { displayMode = mode } }))
                 }
             }
-            .padding(.vertical, 4)
+            .toggleStyle(.button)
+            .labelStyle(.iconOnly)
+            .padding(4)
             .glassEffect(.regular.interactive(), in: .capsule)
         }
     }
