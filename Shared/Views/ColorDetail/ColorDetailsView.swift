@@ -98,6 +98,9 @@ struct ColorDetailsView: View {
                     color.color(colorSpace: colorSpace)
                         .frame(height: 260)
                         .frame(maxWidth: .infinity)
+                        // Bleeds past the landscape notch and home indicator like a header image would;
+                        // the content below stays inset.
+                        .ignoresSafeArea(edges: .horizontal)
                         .draggable(color.color(colorSpace: colorSpace))
                         .dropDestination(for: Color.self) { dropped, _ in
                             guard let first = dropped.first,
