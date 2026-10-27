@@ -18,8 +18,13 @@ extension Color {
     }
 
     /// A card or row sitting on ``groupedBackground``: white in light mode, raised gray in dark.
+    ///
+    /// visionOS has no light page to raise a card off — the window is glass — and its grouped background
+    /// comes out opaque near-black there, so cards take a translucent fill the glass shows through instead.
     static var groupedContent: Color {
-        #if canImport(UIKit)
+        #if os(visionOS)
+        Color(uiColor: .tertiarySystemFill)
+        #elseif canImport(UIKit)
         Color(uiColor: .secondarySystemGroupedBackground)
         #else
         Color(nsColor: .controlBackgroundColor)
