@@ -23,15 +23,15 @@
 			containerPortal = 351A161B28AA868F0047AA76 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 351A162628AA86900047AA76;
-			remoteInfo = "Palette 3D";
+			remoteInfo = "Palette Studio";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1B4231002C896DAD001FD549 /* Palette 3DTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Palette 3DTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1B42310F2C8BAFE9001FD549 /* Palette-3D-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Palette-3D-Info.plist"; sourceTree = "<group>"; };
+		1B4231002C896DAD001FD549 /* Palette StudioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Palette StudioTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B42310F2C8BAFE9001FD549 /* Palette-Studio-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Palette-Studio-Info.plist"; sourceTree = "<group>"; };
 		351A162728AA86900047AA76 /* Palette Studio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Palette Studio.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1BAA000100000000000000A2 /* Palette 3DUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Palette 3DUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1BAA000100000000000000A2 /* Palette StudioUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Palette StudioUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -86,7 +86,7 @@
 		351A161A28AA868F0047AA76 = {
 			isa = PBXGroup;
 			children = (
-				1B42310F2C8BAFE9001FD549 /* Palette-3D-Info.plist */,
+				1B42310F2C8BAFE9001FD549 /* Palette-Studio-Info.plist */,
 				1B7DF6D22E240B720071B353 /* Shared */,
 				1B7DF6DB2E240B760071B353 /* macOS */,
 				1B4231012C896DAD001FD549 /* PaletteTests */,
@@ -99,8 +99,8 @@
 			isa = PBXGroup;
 			children = (
 				351A162728AA86900047AA76 /* Palette Studio.app */,
-				1B4231002C896DAD001FD549 /* Palette 3DTests.xctest */,
-				1BAA000100000000000000A2 /* Palette 3DUITests.xctest */,
+				1B4231002C896DAD001FD549 /* Palette StudioTests.xctest */,
+				1BAA000100000000000000A2 /* Palette StudioUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1B4230FF2C896DAD001FD549 /* Palette 3DTests */ = {
+		1B4230FF2C896DAD001FD549 /* Palette StudioTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1B4231062C896DAD001FD549 /* Build configuration list for PBXNativeTarget "Palette 3DTests" */;
+			buildConfigurationList = 1B4231062C896DAD001FD549 /* Build configuration list for PBXNativeTarget "Palette StudioTests" */;
 			buildPhases = (
 				1B4230FC2C896DAD001FD549 /* Sources */,
 				1B4230FD2C896DAD001FD549 /* Frameworks */,
@@ -124,16 +124,16 @@
 			fileSystemSynchronizedGroups = (
 				1B4231012C896DAD001FD549 /* PaletteTests */,
 			);
-			name = "Palette 3DTests";
+			name = "Palette StudioTests";
 			packageProductDependencies = (
 			);
 			productName = PaletteTests;
-			productReference = 1B4231002C896DAD001FD549 /* Palette 3DTests.xctest */;
+			productReference = 1B4231002C896DAD001FD549 /* Palette StudioTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		351A162628AA86900047AA76 /* Palette 3D */ = {
+		351A162628AA86900047AA76 /* Palette Studio */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 351A163828AA86900047AA76 /* Build configuration list for PBXNativeTarget "Palette 3D" */;
+			buildConfigurationList = 351A163828AA86900047AA76 /* Build configuration list for PBXNativeTarget "Palette Studio" */;
 			buildPhases = (
 				351A162328AA86900047AA76 /* Sources */,
 				351A162428AA86900047AA76 /* Frameworks */,
@@ -146,7 +146,7 @@
 			fileSystemSynchronizedGroups = (
 				1B7DF6D22E240B720071B353 /* Shared */,
 			);
-			name = "Palette 3D";
+			name = "Palette Studio";
 			packageProductDependencies = (
 				1B4230FA2C89558A001FD549 /* PaletteKit */,
 			);
@@ -154,9 +154,9 @@
 			productReference = 351A162728AA86900047AA76 /* Palette Studio.app */;
 			productType = "com.apple.product-type.application";
 		};
-		1BAA000100000000000000A1 /* Palette 3DUITests */ = {
+		1BAA000100000000000000A1 /* Palette StudioUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1BAA000100000000000000AB /* Build configuration list for PBXNativeTarget "Palette 3DUITests" */;
+			buildConfigurationList = 1BAA000100000000000000AB /* Build configuration list for PBXNativeTarget "Palette StudioUITests" */;
 			buildPhases = (
 				1BAA000100000000000000A4 /* Sources */,
 				1BAA000100000000000000A5 /* Frameworks */,
@@ -170,11 +170,11 @@
 			fileSystemSynchronizedGroups = (
 				1BAA000100000000000000A3 /* PaletteUITests */,
 			);
-			name = "Palette 3DUITests";
+			name = "Palette StudioUITests";
 			packageProductDependencies = (
 			);
 			productName = PaletteUITests;
-			productReference = 1BAA000100000000000000A2 /* Palette 3DUITests.xctest */;
+			productReference = 1BAA000100000000000000A2 /* Palette StudioUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -199,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 351A161E28AA868F0047AA76 /* Build configuration list for PBXProject "Palette 3D" */;
+			buildConfigurationList = 351A161E28AA868F0047AA76 /* Build configuration list for PBXProject "Palette Studio" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -220,9 +220,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				351A162628AA86900047AA76 /* Palette 3D */,
-				1B4230FF2C896DAD001FD549 /* Palette 3DTests */,
-				1BAA000100000000000000A1 /* Palette 3DUITests */,
+				351A162628AA86900047AA76 /* Palette Studio */,
+				1B4230FF2C896DAD001FD549 /* Palette StudioTests */,
+				1BAA000100000000000000A1 /* Palette StudioUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -278,12 +278,12 @@
 /* Begin PBXTargetDependency section */
 		1B4231052C896DAD001FD549 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 351A162628AA86900047AA76 /* Palette 3D */;
+			target = 351A162628AA86900047AA76 /* Palette Studio */;
 			targetProxy = 1B4231042C896DAD001FD549 /* PBXContainerItemProxy */;
 		};
 		1BAA000100000000000000A8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 351A162628AA86900047AA76 /* Palette 3D */;
+			target = 351A162628AA86900047AA76 /* Palette Studio */;
 			targetProxy = 1BAA000100000000000000A7 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -482,7 +482,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Palette-3D-Info.plist";
+				INFOPLIST_FILE = "Palette-Studio-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -520,7 +520,7 @@
 				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Palette-3D-Info.plist";
+				INFOPLIST_FILE = "Palette-Studio-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -571,7 +571,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "Palette 3D";
+				TEST_TARGET_NAME = "Palette Studio";
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
@@ -598,7 +598,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "Palette 3D";
+				TEST_TARGET_NAME = "Palette Studio";
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
@@ -606,7 +606,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1B4231062C896DAD001FD549 /* Build configuration list for PBXNativeTarget "Palette 3DTests" */ = {
+		1B4231062C896DAD001FD549 /* Build configuration list for PBXNativeTarget "Palette StudioTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1B4231072C896DAD001FD549 /* Debug */,
@@ -615,7 +615,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		351A161E28AA868F0047AA76 /* Build configuration list for PBXProject "Palette 3D" */ = {
+		351A161E28AA868F0047AA76 /* Build configuration list for PBXProject "Palette Studio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				351A163628AA86900047AA76 /* Debug */,
@@ -624,7 +624,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		351A163828AA86900047AA76 /* Build configuration list for PBXNativeTarget "Palette 3D" */ = {
+		351A163828AA86900047AA76 /* Build configuration list for PBXNativeTarget "Palette Studio" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				351A163928AA86900047AA76 /* Debug */,
@@ -633,7 +633,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1BAA000100000000000000AB /* Build configuration list for PBXNativeTarget "Palette 3DUITests" */ = {
+		1BAA000100000000000000AB /* Build configuration list for PBXNativeTarget "Palette StudioUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1BAA000100000000000000A9 /* Debug */,

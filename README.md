@@ -21,4 +21,4 @@ Design color palettes by moving colors through a 3D sphere, then check that they
 
 ## Building
 
-Open `Palette 3D.xcodeproj` in the latest Xcode and run the `Palette 3D` scheme (the app ships as Palette Studio). The color model, generator, and file formats live in the separate PaletteKit package. See [`AGENTS.md`](AGENTS.md) for architecture and testing details.
+Open `Palette Studio.xcodeproj` in the latest Xcode and run the `Palette Studio` scheme. The color model, generator, and file formats live in the separate PaletteKit package. See [`AGENTS.md`](AGENTS.md) for architecture and testing details.

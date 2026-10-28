@@ -10,7 +10,7 @@ struct AppLinks: View {
         Link(destination: URL(string: "https://www.256arts.com/joincommunity/")!) {
             Label("Join Community", systemImage: "bubble.left.and.bubble.right")
         }
-        Link(destination: URL(string: "https://github.com/256Arts/Palette-3D")!) {
+        Link(destination: URL(string: "https://github.com/256Arts/Palette-Studio")!) {
             Label("Contribute on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
         }
     }

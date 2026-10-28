@@ -4,25 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-The app ships as **Palette Studio** — that is its `PRODUCT_NAME`, the name under its icon, and
-its name in App Store Connect. The Xcode project, target and schemes are still spelled `Palette 3D`,
-which is why the built product and the project file disagree; only the product name was renamed.
+The app was once **Palette 3D**. Identifiers that outlive a rename keep that spelling on purpose —
+the bundle id and CloudKit container (`palette3d`), the exported UTTypes in `Palette-Studio-Info.plist`,
+and the website/App Store URL slugs. Changing any of them orphans users' data, drags, or links.
 
 Palette Studio is a multiplatform SwiftUI app (iOS, macOS, visionOS) that procedurally generates color palettes and visualizes them in 3D. Colors are positioned inside a sphere whose axes are perceptual color dimensions (lightness, chroma, hue). Palettes are saved to a SwiftData library, and can also be imported from and exported to standard formats (.gpl, .clr, palette images, lospec.com).
 
 ## Build & Test
 
-The project is an Xcode project (`Palette 3D.xcodeproj`) with one app target (`Palette 3D`) and one test target (`Palette 3DTests`). Tests use Swift Testing (`import Testing` / `@Test`), not XCTest. The scheme's test action covers `Palette 3DTests`. The color model, generator, and file formats are tested in **PaletteKit** (`swift test` in its own repo); the tests here cover only this app's layer — SwiftData persistence, the `@Model` ↔ `PaletteKit.Palette` bridge, undo, and the editing rules (`EditingTests`: the customization lock, reordering, format pins, WCAG grades).
+The project is an Xcode project (`Palette Studio.xcodeproj`) with one app target (`Palette Studio`) and one test target (`Palette StudioTests`). Tests use Swift Testing (`import Testing` / `@Test`), not XCTest. The scheme's test action covers `Palette StudioTests`. The color model, generator, and file formats are tested in **PaletteKit** (`swift test` in its own repo); the tests here cover only this app's layer — SwiftData persistence, the `@Model` ↔ `PaletteKit.Palette` bridge, undo, and the editing rules (`EditingTests`: the customization lock, reordering, format pins, WCAG grades).
 
 ```sh
 # Build (let xcodebuild pick a destination, or use Xcode directly)
-xcodebuild -scheme "Palette 3D" build
+xcodebuild -scheme "Palette Studio" build
 
 # Run all tests
-xcodebuild -scheme "Palette 3D" test
+xcodebuild -scheme "Palette Studio" test
 
 # Run a single test
-xcodebuild -scheme "Palette 3D" test -only-testing:"Palette 3DTests/PaletteTests/palettePersistsThroughSwiftData"
+xcodebuild -scheme "Palette Studio" test -only-testing:"Palette StudioTests/PaletteTests/palettePersistsThroughSwiftData"
 ```
 
 Note: the app targets **OS 26** (iOS/macOS/visionOS 26.0). Newer APIs are used where they earn their place, gated with `#available` — see `PaletteGridView` (reorder containers), `PaletteListView` (`ToolbarOverflowMenu`), and `PaletteEditorView` (`visibilityPriority`, which is macOS 26.1 but iOS 27).
@@ -49,7 +49,7 @@ shared script and its `screenshot-support/` helpers — don't reimplement them h
   seasonal palette, so an unpinned run would differ by month.
 - `PaletteUITests/ScreenshotTests.swift` is the driver: one XCUITest walking one launch, attaching each
   shot with `.keepAlways` (attachments on a passing test are discarded otherwise). It runs under the
-  **Screenshots** scheme, kept separate so `xcodebuild test` on the `Palette 3D` scheme stays unit-only.
+  **Screenshots** scheme, kept separate so `xcodebuild test` on the `Palette Studio` scheme stays unit-only.
 - Simulator shots come from `XCUIScreen.main.screenshot()`, already the exact pixel size the store
   wants. The script freezes the status bar to 9:41 first.
 - Mac shots are taken by the *script*, not the test. `screencapture -l <windowID>` reads the window's
@@ -66,7 +66,7 @@ shared script and its `screenshot-support/` helpers — don't reimplement them h
   (an accepted App Store size) over a wallpaper from iCloud — no mask to rebuild, no shadow to fake.
   Override the backdrop with `SCREENSHOT_MAC_BACKGROUND`; if it is unreachable the compositor falls
   back to a flat colour rather than failing the run.
-- The Mac shots photograph the app's own `defaultSize` — 1024x640 (shared with the visionOS window), set in `Palette3DApp` — rather than
+- The Mac shots photograph the app's own `defaultSize` — 1024x640 (shared with the visionOS window), set in `PaletteStudioApp` — rather than
   a size invented for screenshots. macOS restores a saved window frame ahead of `defaultSize`, so the
   script clears the app's `NSWindow Frame` defaults first; that is the one piece of local state a run
   touches. If a screenshot looks wrong-sized, change `defaultSize`, not the script.
@@ -88,7 +88,7 @@ The app has two layers: an abstract palette model (resolution-independent fracti
 **Palette library** (`Shared/Model/Palette.swift`):
 - `Palette` is a SwiftData `@Model`: `name`, optional `parameters` (a `PaletteGenerator.Parameters`), `colors`, `isCustomized`, `dateModified`. A **perfect palette** keeps its generator parameters (created via `Palette.perfect(...)`); a **plain palette** is just a color list with `parameters == nil` (created via `Palette.plain(...)`, e.g. imports).
 - Once the user manually edits a color, `isCustomized` locks generation (`canEditParameters` becomes false) so parameter changes can't overwrite their work. Generation is deterministic, so "Discard Manual Edits" exactly reproduces the perfect palette and unlocks the parameters again.
-- `Palette3DApp` creates one shared `ModelContainer` used by every window (including the visionOS volume), synced through CloudKit (`iCloud.com.jaydenirwin.palette3d`). CloudKit requires every `Palette` property to be optional or defaulted and forbids `@Attribute(.unique)`; `schemaIsCloudKitCompatible` guards this. The entitlements file is shared by every platform, so it carries both `aps-environment` (iOS/visionOS) and `com.apple.developer.aps-environment` (macOS) — signing keeps whichever applies. New model fields need a schema deploy to Production in the CloudKit Console before release.
+- `PaletteStudioApp` creates one shared `ModelContainer` used by every window (including the visionOS volume), synced through CloudKit (`iCloud.com.jaydenirwin.palette3d`). CloudKit requires every `Palette` property to be optional or defaulted and forbids `@Attribute(.unique)`; `schemaIsCloudKitCompatible` guards this. The entitlements file is shared by every platform, so it carries both `aps-environment` (iOS/visionOS) and `com.apple.developer.aps-environment` (macOS) — signing keeps whichever applies. New model fields need a schema deploy to Production in the CloudKit Console before release.
 
 **Generation pipeline** (`PaletteGenerator` → `[PaletteColor]`) — **all of it lives in PaletteKit**; the app only drives it and persists the `Parameters`:
 - `PaletteGenerator` (`@Observable`) wraps a `Parameters` struct (Codable/Equatable — this is what `Palette` persists) and `generate()` produces the colors. Generation is deterministic, which is what lets the app store the recipe instead of the colors. It works purely in **normalized fractions** (lightness, chroma, hue) and is unaware of any concrete color space. It models the palette as a sphere: lightness is the vertical axis, and each lightness layer is a disc whose radius (`sqrt(1 - (lightness*2-1)^2)`) shrinks toward the poles; chroma is radial distance, hue is the angle around the disc.
@@ -102,7 +102,7 @@ Inside that first tab, `PaletteListView` (`Shared/Views/Library/`) is a `Navigat
 
 **Menu bar commands** (`Shared/Views/PaletteCommands.swift`, applied on every platform so iPad's menu gets them too): File ▸ New Perfect Palette (⌘N; New Window moves to ⌥⌘N) / Import, View ▸ Sphere/Grid/Text (⌘1–3) plus the system `InspectorCommands` (⌃⌘I), and Palette ▸ Add Color (⇧⌘N) / Export. They act through focused scene values — `PaletteListView` publishes `PaletteLibraryFocus`, `PaletteEditorView` publishes `PaletteEditorFocus` — which is why the editor, not `DisplayView`, owns `displayMode` and `showingAddColor`. `PaletteExportMenu` is the one export list, shared by the toolbar and the menu bar.
 
-**Import/Export** — the parsers and `Transferable`s (GIMP `.gpl`, `NSColorList` `.clr`, 1px palette images, lospec.com's `lospec-palette://` scheme registered in `Palette-3D-Info.plist`) all live in **PaletteKit**. The app only funnels: `PaletteListView.importFiles(_:)` hands any URL to `PaletteKit.Palette(file:colorSpace:)` — which picks the parser itself, so the app never switches on the file extension — and lands the result as a plain palette. Exports pass `palette.snapshot()` to PaletteKit's `GIMPPaletteExport` / `PaletteImageExport` / `PaletteColorListExport`.
+**Import/Export** — the parsers and `Transferable`s (GIMP `.gpl`, `NSColorList` `.clr`, 1px palette images, lospec.com's `lospec-palette://` scheme registered in `Palette-Studio-Info.plist`) all live in **PaletteKit**. The app only funnels: `PaletteListView.importFiles(_:)` hands any URL to `PaletteKit.Palette(file:colorSpace:)` — which picks the parser itself, so the app never switches on the file extension — and lands the result as a plain palette. Exports pass `palette.snapshot()` to PaletteKit's `GIMPPaletteExport` / `PaletteImageExport` / `PaletteColorListExport`.
 
 **Analysis** (`Shared/Views/Analysis/`): `PaletteAnalysisView` is a read-only panel (in the editor's inspector) with pairwise ΔE₀₀ / WCAG contrast statistics and coverage, computed from PaletteKit's `ColorMetrics`. Its Color Vision section reruns the pairwise ΔE through `ColorVision` (`Shared/Model/`, Machado 2009 in linear sRGB) per deficiency; the grid's filter menu previews the same simulation. `ColorVision` returns a `PaletteColor`, so drawing and metrics need no second path. It converts each color to a `ColorMetrics.Sample` once and compares samples — the pairwise loop is O(n²) and must not re-convert. It also lives beside the controls that edit the palette, so the analysis is held in `@State` behind a `.task(id:)` rather than computed from `body`. `PairsView` — the Pairs tab, and a root rather than a sheet, so it carries no Close button — compares two colors via CSS `color-mix()`/gradients in multiple interpolation spaces, resolved by `WebColorRenderer` (an offscreen `WKWebView` that does only the color math; results are drawn natively). WebKit reclaims a backgrounded app's content process, which leaves the web view alive but takes `window.resolveColors` with it — so the renderer implements the failure delegates, rebuilds the page when it's lost, and retries an evaluation once, since the call that discovers a dead page is also the one that triggers the reload. Without that, every ramp, wheel, and bar comes back empty until the app is relaunched. Its two colors are picked through `ColorPairBar` rather than `ColorPicker`s: one capsule split between them, each half a `ColorDetailsButton` into that color's details — the sheet holds a picker of its own plus the formats, contrast, ramps, and imports, so the swap only adds. At a regular width the page shows everything at once — each interpolation space's mix swatch beside its gradient on one row, with the statistics as their own always-visible sections — so the Mix/Gradient/Stats picker exists only in compact width, where the three have to take turns. macOS has no `horizontalSizeClass`, so it reads as regular unconditionally. Every mode shows that same capsule; a `mix` binding is what makes the split movable, and `nil` fixes it at half wherever no mix is on screen, so changing mode doesn't rearrange the page. The drag lives on an invisible 44pt `grabber` strip over the divider, not on the track: the halves are buttons now, and a track-wide drag would land on them as taps. That strip is also where the `Slider` accessibility representation sits, leaving the halves as plain buttons. A Mix swatch taps into its details; a Gradient row gets a copy button instead, since a gradient is the one thing here that isn't a color — it copies `linear-gradient(in <space>, …)`, which reproduces the bar's colors exactly because the sampled stops take CSS's same default `shorter hue` path. No direction is emitted — where the gradient points is the caller's decision, not the bar's.
 

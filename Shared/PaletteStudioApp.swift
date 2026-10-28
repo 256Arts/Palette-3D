@@ -4,7 +4,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct Palette3DApp: App {
+struct PaletteStudioApp: App {
 
     /// A single shared container so every window (including the visionOS volume) reads the same store.
     private let container: ModelContainer

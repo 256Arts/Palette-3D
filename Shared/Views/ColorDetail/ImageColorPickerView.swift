@@ -264,7 +264,7 @@ final class ConstantColorCameraViewController: UIViewController, AVCapturePhotoC
     // Touched only on `sessionQueue`, which serializes all access, so the isolation is hand-managed.
     private nonisolated(unsafe) let session = AVCaptureSession()
     private nonisolated(unsafe) let photoOutput = AVCapturePhotoOutput()
-    private let sessionQueue = DispatchQueue(label: "com.256arts.palette-3d.camera")
+    private let sessionQueue = DispatchQueue(label: "com.256arts.palette-studio.camera")
     private var previewLayer: AVCaptureVideoPreviewLayer!
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     private var rotationObservation: NSKeyValueObservation?

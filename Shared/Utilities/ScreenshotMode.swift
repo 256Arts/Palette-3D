@@ -10,7 +10,7 @@ import SwiftUI
 /// whatever library is on the machine taking the shots.
 enum ScreenshotMode {
 
-    /// Whether this launch is a screenshot run. Read once, by `Palette3DApp.init`.
+    /// Whether this launch is a screenshot run. Read once, by `PaletteStudioApp.init`.
     static var isActive: Bool {
         ProcessInfo.processInfo.arguments.contains("-screenshotMode")
     }

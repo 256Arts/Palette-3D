@@ -42,7 +42,7 @@ struct PaletteCommands: Commands {
                 .disabled(library == nil)
             Button("New Empty Palette") { library?.newEmptyPalette() }
                 .disabled(library == nil)
-            Button("New Window") { openWindow(id: Palette3DApp.mainWindowID) }
+            Button("New Window") { openWindow(id: PaletteStudioApp.mainWindowID) }
                 .keyboardShortcut("n", modifiers: [.command, .option])
             Divider()
             Button("Import GIMP Palette…") { library?.importGIMPPalette() }
