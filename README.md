@@ -1,12 +1,12 @@
 # Palette Studio
 
-<img src="https://www.256arts.com/palette3d/icon_palette3d.webp" alt="Palette Studio icon" width="128" align="right">
+<img src="https://www.256arts.com/palettestudio/icon_palettestudio.webp" alt="Palette Studio icon" width="128" align="right">
 
 Design color palettes by moving colors through a 3D sphere, then check that they actually work together.
 
-[Download on the App Store](https://apps.apple.com/app/palette-3d/id6670776239) · [256arts.com/palette3d](https://www.256arts.com/palette3d/)
+[Download on the App Store](https://apps.apple.com/app/palette-studio/id6670776239) · [256arts.com/palettestudio](https://www.256arts.com/palettestudio/)
 
-<img src="https://www.256arts.com/palette3d/shot1.webp" alt="A palette's colors positioned inside a 3D sphere by lightness, chroma, and hue" width="300">
+<img src="https://www.256arts.com/palettestudio/shot1.webp" alt="A palette's colors positioned inside a 3D sphere by lightness, chroma, and hue" width="300">
 
 ## Features
 

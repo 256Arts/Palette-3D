@@ -5,8 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 The app was once **Palette 3D**. Identifiers that outlive a rename keep that spelling on purpose —
-the bundle id and CloudKit container (`palette3d`), the exported UTTypes in `Palette-Studio-Info.plist`,
-and the website/App Store URL slugs. Changing any of them orphans users' data, drags, or links.
+the bundle id and CloudKit container (`palette3d`) and the exported UTTypes in `Palette-Studio-Info.plist`;
+changing them orphans users' data and drags. The site moved to `/palettestudio/`, but `/palette3d/`
+still redirects and still routes App Store event links, so `onOpenURL` matches either.
 
 Palette Studio is a multiplatform SwiftUI app (iOS, macOS, visionOS) that procedurally generates color palettes and visualizes them in 3D. Colors are positioned inside a sphere whose axes are perceptual color dimensions (lightness, chroma, hue). Palettes are saved to a SwiftData library, and can also be imported from and exported to standard formats (.gpl, .clr, palette images, lospec.com).
 

@@ -66,7 +66,8 @@ struct PaletteStudioApp: App {
                     Text("Your saved palettes weren't deleted, but they couldn't be opened right now. Anything you make before relaunching won't be saved. Don't delete the app — check for an update instead.")
                 }
                 .onOpenURL { url in
-                    if url.path().contains("palette3d/appstoreevent") {
+                    // /palette3d/ is the slug from before the rename; published event links still use it.
+                    if url.path().hasSuffix("/appstoreevent") {
                         showingEvent = true
                     }
                 }
