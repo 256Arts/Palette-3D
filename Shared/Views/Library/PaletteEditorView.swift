@@ -17,8 +17,17 @@ struct PaletteEditorView: View {
     @State private var paletteText = ""
     /// A phone's inspector is a sheet, raised in `.task` once the push has landed; elsewhere it's a column, there from the start.
     @State private var showingInspector = !Self.isPhone
-    /// How much of the display the inspector's sheet covers, or 0 while it's a column or not on screen.
-    @State private var sheetHeight: CGFloat = 0
+    /// Where the inspector's sheet starts, in window coordinates, or `nil` while it's a column or not on screen.
+    @State private var sheetTop: CGFloat?
+    /// Where the display's safe area ends, in the same coordinates, so the sheet's overlap can be measured.
+    @State private var displayBottom: CGFloat = 0
+
+    /// How much of the display the sheet covers. Measured edge to edge rather than taken from the
+    /// sheet's height, which also counts the home indicator inset the display already avoids.
+    private var sheetOverlap: CGFloat {
+        guard horizontalSizeClass == .compact, let sheetTop else { return 0 }
+        return max(0, displayBottom - sheetTop)
+    }
     /// Held here rather than in `DisplayView` so the menu bar's commands can reach them.
     @State private var displayMode: DisplayView.DisplayMode = .sphere
     @State private var showingAddColor = false
@@ -229,15 +238,20 @@ struct PaletteEditorView: View {
         #else
         display
             // Keep the display clear of the sheet, so the sphere centers in what's left visible.
-            .safeAreaPadding(.bottom, horizontalSizeClass == .compact ? sheetHeight : 0)
+            .safeAreaPadding(.bottom, sheetOverlap)
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { displayBottom = $0 }
             .inspector(isPresented: inspectorPresented) {
                 inspector
+                    // A sheet's grabber floats over its content; keep the header's picker clear of it.
+                    .safeAreaPadding(.top, horizontalSizeClass == .compact ? 12 : 0)
                     .presentationDetents([.height(64), .medium, .large], selection: $selectedDetent)
                     .presentationBackgroundInteraction(.enabled)
                     .interactiveDismissDisabled(Self.isPhone)
                     .inspectorColumnWidth(ideal: 360)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { sheetHeight = $0 }
-                    .onDisappear { sheetHeight = 0 }
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.frame(in: .global).minY - $0.safeAreaInsets.top
+                    } action: { sheetTop = $0 }
+                    .onDisappear { sheetTop = nil }
             }
             .toolbar {
                 // Ungated: closing the inspector on a palette with no parameters would otherwise strand it.

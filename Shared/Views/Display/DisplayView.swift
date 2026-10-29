@@ -183,10 +183,7 @@ struct DisplayView: View {
         #if os(iOS)
         .safeAreaInset(edge: .bottom) {
             if floatsDisplayModePicker && !textIsFocused {
-                displayModePicker
-                    .frame(width: 220)
-                    .padding(4)
-                    .glassEffect(.regular.interactive(), in: .capsule)
+                DisplayModeToggles(displayMode: $displayMode, axis: .horizontal)
                     .padding(.bottom, 8)
             }
         }
@@ -299,19 +296,41 @@ private struct DisplayModeControl<Picker: View>: View {
         if toolbarVerticalEdge == nil {
             picker
         } else {
-            VStack(spacing: 0) {
-                ForEach(DisplayView.DisplayMode.allCases) { mode in
-                    // Turning the current mode off has nothing to fall back to, so only turning on lands.
-                    Toggle(mode.title, systemImage: mode.systemImage, isOn: Binding(
-                        get: { displayMode == mode },
-                        set: { if $0 { displayMode = mode } }))
-                }
-            }
-            .toggleStyle(.button)
-            .labelStyle(.iconOnly)
-            .padding(4)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            DisplayModeToggles(displayMode: $displayMode, axis: .vertical)
         }
+    }
+}
+
+/// The display modes as buttons in a glass capsule — for where the picker floats over the display
+/// rather than sitting in a toolbar, which would otherwise draw the segmented control's own border
+/// inside the glass's. Buttons rather than toggles, which reach VoiceOver as three unrelated switches
+/// instead of one choice.
+private struct DisplayModeToggles: View {
+    @Binding var displayMode: DisplayView.DisplayMode
+    let axis: Axis
+
+    var body: some View {
+        let layout = axis == .vertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
+        layout {
+            ForEach(DisplayView.DisplayMode.allCases) { mode in
+                let isSelected = displayMode == mode
+                Button {
+                    displayMode = mode
+                } label: {
+                    Label(mode.title, systemImage: mode.systemImage)
+                        .labelStyle(.iconOnly)
+                        .frame(width: 52, height: 36)
+                        .background(isSelected ? AnyShapeStyle(.fill) : AnyShapeStyle(.clear), in: .capsule)
+                        .contentShape(.capsule)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(isSelected ? .primary : .secondary)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .animation(.snappy, value: displayMode)
     }
 }
 #endif
