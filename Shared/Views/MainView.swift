@@ -17,9 +17,7 @@ struct MainView: View {
 
     /// The Color tab's scratch color, held here rather than in the tab so switching away and back doesn't
     /// reset it. It belongs to no palette, which is what `.scratch` tells the details view.
-    @State private var scratchColor = PaletteColor(lightnessFraction: 0.6,
-                                                   chromaFraction: 0.5,
-                                                   hueAngle: .degrees(30))
+    @State private var scratchColor = PaletteColor(hex: "FF2D55", colorSpace: .okLch)!
 
     var body: some View {
         TabView(selection: $selection) {

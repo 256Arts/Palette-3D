@@ -40,6 +40,10 @@ final class ScreenshotTests: XCTestCase {
         capture("01-library")
 
         activate(control("Pairs"), "Pairs tab", shot: "04-pairs")
+        // Compact width makes Mix, Gradient and Stats take turns; regular width shows them all and
+        // has no picker, so there is nothing to tap.
+        let gradient = control("Gradient")
+        if gradient.waitForExistence(timeout: 2) { press(gradient) }
         settle(seconds: 4)   // the ramps come back from an offscreen WKWebView, not from SwiftUI
         capture("04-pairs")
 
@@ -52,6 +56,9 @@ final class ScreenshotTests: XCTestCase {
         settle(seconds: 4)   // the sphere is RealityKit; give it frames to draw
         capture("02-editor-sphere")
 
+        // Zughy 32's even ramps read better as swatches than the generated palette does.
+        goBack(shot: "03-editor-grid")
+        activate(control("PaletteRow.Zughy 32"), "Zughy 32 palette row", shot: "03-editor-grid")
         activate(control("Grid"), "Grid display mode", shot: "03-editor-grid")
         settle()
         capture("03-editor-grid")
@@ -149,10 +156,24 @@ final class ScreenshotTests: XCTestCase {
 
     private func activate(_ element: XCUIElement, _ description: String, shot: String) {
         guard waitFor(element, description, shot: shot, timeout: 15) else { return }
+        press(element)
+    }
+
+    private func press(_ element: XCUIElement) {
         #if os(macOS)
         element.click()
         #else
         element.tap()
+        #endif
+    }
+
+    /// Pops the pushed editor back to the library. The back button is the navigation bar's first
+    /// button on iOS and visionOS; macOS puts it in the toolbar as "Back".
+    private func goBack(shot: String) {
+        #if os(macOS)
+        activate(app.toolbars.buttons["Back"].firstMatch, "the editor's back button", shot: shot)
+        #else
+        activate(app.navigationBars.buttons.firstMatch, "the editor's back button", shot: shot)
         #endif
     }
 

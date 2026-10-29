@@ -49,6 +49,14 @@ struct DisplayView: View {
     @State var showingTextInputWarning = false
     @State private var editingColorIndex: Int?
     @FocusState var textIsFocused: Bool
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    /// In compact width the editor's inspector is a sheet over the bottom bar, so the picker floats
+    /// above the sheet instead — the editor insets the display by the sheet's height, so it rides
+    /// up and down with it.
+    private var floatsDisplayModePicker: Bool { horizontalSizeClass == .compact }
+    #endif
     
     #if !os(visionOS)
     private var displayModePlacement: ToolbarItemPlacement {
@@ -172,6 +180,17 @@ struct DisplayView: View {
         #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        #if os(iOS)
+        .safeAreaInset(edge: .bottom) {
+            if floatsDisplayModePicker && !textIsFocused {
+                displayModePicker
+                    .frame(width: 220)
+                    .padding(4)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .padding(.bottom, 8)
+            }
+        }
+        #endif
         #if os(visionOS)
         // A bottom-bar toolbar item sits inside a visionOS window, over the display it switches;
         // an ornament hangs it below the window instead.
@@ -195,11 +214,13 @@ struct DisplayView: View {
             #endif
 
             #if os(iOS)
-            if #available(iOS 27.1, *) {
-                displayModeItem
-                    .axisBehavior(.verticalPreferred)
-            } else {
-                displayModeItem
+            if !floatsDisplayModePicker {
+                if #available(iOS 27.1, *) {
+                    displayModeItem
+                        .axisBehavior(.verticalPreferred)
+                } else {
+                    displayModeItem
+                }
             }
             #elseif os(macOS)
             displayModeItem
