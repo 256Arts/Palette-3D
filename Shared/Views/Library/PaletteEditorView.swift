@@ -15,7 +15,10 @@ struct PaletteEditorView: View {
 
     @State private var generator = PaletteGenerator()
     @State private var paletteText = ""
-    @State private var showingInspector = true
+    /// A phone's inspector is a sheet, raised in `.task` once the push has landed; elsewhere it's a column, there from the start.
+    @State private var showingInspector = !Self.isPhone
+    /// How much of the display the inspector's sheet covers, or 0 while it's a column or not on screen.
+    @State private var sheetHeight: CGFloat = 0
     /// Held here rather than in `DisplayView` so the menu bar's commands can reach them.
     @State private var displayMode: DisplayView.DisplayMode = .sphere
     @State private var showingAddColor = false
@@ -36,9 +39,9 @@ struct PaletteEditorView: View {
     #endif
 
     #if canImport(UIKit)
-    private let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+    private static let isPhone = UIDevice.current.userInterfaceIdiom == .phone
     #else
-    private let isPhone = false
+    private static let isPhone = false
     #endif
 
     /// The inspector is no longer gated on the parameters: a palette that can't be regenerated still has
@@ -156,6 +159,13 @@ struct PaletteEditorView: View {
             }
             .focusedSceneValue(\.paletteEditor, focus)
             .onAppear(perform: load)
+            .task {
+                // A sheet presented while the push is still animating is silently dropped, leaving
+                // `showingInspector` true with nothing on screen and no button to bring it back.
+                guard !showingInspector else { return }
+                try? await Task.sleep(for: .milliseconds(500))
+                showingInspector = true
+            }
             .onDisappear {
                 // Steps outlive the editor on the window's undo manager, where one could land on a
                 // palette since deleted from the list.
@@ -218,13 +228,16 @@ struct PaletteEditorView: View {
         }
         #else
         display
-            .safeAreaPadding(.bottom, selectedDetent == .height(64) || horizontalSizeClass == .regular || !isPhone ? 0 : 400)
+            // Keep the display clear of the sheet, so the sphere centers in what's left visible.
+            .safeAreaPadding(.bottom, horizontalSizeClass == .compact ? sheetHeight : 0)
             .inspector(isPresented: inspectorPresented) {
                 inspector
                     .presentationDetents([.height(64), .medium, .large], selection: $selectedDetent)
                     .presentationBackgroundInteraction(.enabled)
-                    .interactiveDismissDisabled(isPhone)
+                    .interactiveDismissDisabled(Self.isPhone)
                     .inspectorColumnWidth(ideal: 360)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { sheetHeight = $0 }
+                    .onDisappear { sheetHeight = 0 }
             }
             .toolbar {
                 // Ungated: closing the inspector on a palette with no parameters would otherwise strand it.
