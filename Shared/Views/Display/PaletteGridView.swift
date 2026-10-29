@@ -89,6 +89,9 @@ struct PaletteGridView: View {
             }
             .modifier(SwatchDragContainers(items: items, onReorder: onReorder))
             .scenePadding()
+            // An adaptive grid is only as wide as its columns, and the scroll view hugs it; fill the width so
+            // the margins scroll too and nothing laid out beside the grid shifts with its color count.
+            .frame(maxWidth: .infinity)
             .animation(.snappy, value: showsName)
             .animation(.snappy, value: showsHex)
         }
